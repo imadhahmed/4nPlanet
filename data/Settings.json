@@ -1,0 +1,44 @@
+[
+  {
+    "key": "shop_name",
+    "value": "4N Planet",
+    "description": "",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "updated_by": "system"
+  },
+  {
+    "key": "currency",
+    "value": "LKR",
+    "description": "",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "updated_by": "system"
+  },
+  {
+    "key": "currency_symbol",
+    "value": "Rs.",
+    "description": "",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "updated_by": "system"
+  },
+  {
+    "key": "timezone",
+    "value": "Asia/Colombo",
+    "description": "",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "updated_by": "system"
+  },
+  {
+    "key": "receipt_footer",
+    "value": "Thank you for shopping at 4N Planet! Please retain your receipt for warranty claims.",
+    "description": "",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "updated_by": "system"
+  },
+  {
+    "key": "warranty_disclaimer",
+    "value": "Warranty covers manufacturing defects only. Physical and liquid damage are void.",
+    "description": "",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "updated_by": "system"
+  }
+]

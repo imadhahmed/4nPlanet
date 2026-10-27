@@ -1,0 +1,47 @@
+[
+  {
+    "serial_id": "SER-000001",
+    "product_id": "PROD-000001",
+    "imei1": "354892109823412",
+    "imei2": "354892109823413",
+    "serial_number": "FX48921",
+    "condition": "new",
+    "color": "Natural Titanium",
+    "status": "available",
+    "purchase_id": "PUR-000001",
+    "sale_id": "",
+    "battery_health": 100,
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  },
+  {
+    "serial_id": "SER-000002",
+    "product_id": "PROD-000001",
+    "imei1": "354892109823414",
+    "imei2": "",
+    "serial_number": "FX48922",
+    "condition": "new",
+    "color": "Black Titanium",
+    "status": "available",
+    "purchase_id": "PUR-000001",
+    "sale_id": "",
+    "battery_health": 100,
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  },
+  {
+    "serial_id": "SER-000003",
+    "product_id": "PROD-000002",
+    "imei1": "357182901239845",
+    "imei2": "",
+    "serial_number": "R582910",
+    "condition": "new",
+    "color": "Titanium Black",
+    "status": "available",
+    "purchase_id": "PUR-000001",
+    "sale_id": "",
+    "battery_health": 100,
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  }
+]

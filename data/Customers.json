@@ -1,0 +1,30 @@
+[
+  {
+    "customer_id": "WALK_IN",
+    "name": "Walk-in Customer",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "customer_type": "walk_in",
+    "total_purchases": 0,
+    "total_payments": 0,
+    "outstanding_balance": 0,
+    "is_active": "true",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  },
+  {
+    "customer_id": "CUST-000001",
+    "name": "Kasun Perera",
+    "phone": "0771234567",
+    "email": "kasun@example.com",
+    "address": "Dehiwala, Colombo",
+    "customer_type": "registered",
+    "total_purchases": 0,
+    "total_payments": 0,
+    "outstanding_balance": 0,
+    "is_active": "true",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  }
+]

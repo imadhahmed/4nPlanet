@@ -1,0 +1,42 @@
+[
+  {
+    "category_id": "CAT-000001",
+    "name": "Smartphones",
+    "description": "Flagship & budget mobile phones",
+    "is_active": "true",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  },
+  {
+    "category_id": "CAT-000002",
+    "name": "Chargers & Cables",
+    "description": "Fast chargers and USB cables",
+    "is_active": "true",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  },
+  {
+    "category_id": "CAT-000003",
+    "name": "Audio & Acoustics",
+    "description": "Earbuds, headphones & Bluetooth speakers",
+    "is_active": "true",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  },
+  {
+    "category_id": "CAT-000004",
+    "name": "Cases & Protectors",
+    "description": "Tempered glass and shockproof covers",
+    "is_active": "true",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  },
+  {
+    "category_id": "CAT-000005",
+    "name": "Repair Spare Parts",
+    "description": "Displays, batteries and IC components",
+    "is_active": "true",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z"
+  }
+]

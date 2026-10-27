@@ -1,0 +1,26 @@
+[
+  {
+    "user_id": "USR-000001",
+    "name": "Admin User",
+    "email": "admin@4nplanet.lk",
+    "password_hash": "b0ff67c2cc20f5e501a7036761ed021997217668f18493ba3bf6d3469a903522:57a10393b6d9ca0a36b54ed74af9d18bc79ee28617cc4afa7825edc8be529acf",
+    "role": "admin",
+    "is_active": "true",
+    "phone": "0770000001",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "last_login": "2026-10-27T05:18:24.960Z"
+  },
+  {
+    "user_id": "USR-000002",
+    "name": "Cashier Staff",
+    "email": "cashier@4nplanet.lk",
+    "password_hash": "100709a1403869e11aa0390f19c7debae89845b80a4883d6dc7aa4cd19e59896:d2afc15730110c545c950001f3e36f076e2572d9af34c336a99342a09adf40d8",
+    "role": "cashier",
+    "is_active": "true",
+    "phone": "0770000002",
+    "created_at": "2026-10-27T05:17:59.507Z",
+    "updated_at": "2026-10-27T05:17:59.507Z",
+    "last_login": ""
+  }
+]
