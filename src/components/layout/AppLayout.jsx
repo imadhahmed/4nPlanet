@@ -1,24 +1,26 @@
-// src/components/layout/AppLayout.jsx
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import Header from './Header.jsx';
 
 export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  // Automatically close mobile drawer when navigating
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="app-layout">
       {/* Mobile overlay */}
       {mobileSidebarOpen && (
         <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            zIndex: 150, display: 'none',
-          }}
           className="mobile-overlay"
           onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 

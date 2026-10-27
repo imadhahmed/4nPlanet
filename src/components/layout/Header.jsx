@@ -65,8 +65,14 @@ export default function Header({ onMobileMenuToggle, onSidebarToggle }) {
       {/* Left Area: Toggle & Breadcrumbs */}
       <div className="header-left">
         <button
-          className="icon-btn"
-          onClick={onSidebarToggle || onMobileMenuToggle}
+          className="icon-btn header-toggle-btn"
+          onClick={() => {
+            if (window.innerWidth <= 768) {
+              onMobileMenuToggle?.();
+            } else {
+              onSidebarToggle?.();
+            }
+          }}
           title="Toggle Navigation"
           aria-label="Toggle Navigation"
         >
@@ -102,12 +108,12 @@ export default function Header({ onMobileMenuToggle, onSidebarToggle }) {
         {/* Quick Action Button */}
         <div style={{ position: 'relative' }} ref={quickRef}>
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm header-pos-btn"
             onClick={() => navigate('/pos')}
-            title="Create a new sale"
+            title="Point of Sale"
           >
             <ShoppingCart size={15} />
-            <span>POS / Sale</span>
+            <span className="header-pos-label">POS / Sale</span>
           </button>
         </div>
 

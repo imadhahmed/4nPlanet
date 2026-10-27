@@ -231,7 +231,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Analytics Section: Responsive Two-Column Layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)', gap: 20, marginBottom: 24 }}>
+      <div className="dashboard-analytics-grid">
         {/* Left Column: Sales Trend & Recent Sales */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Sales Revenue Trend Chart */}

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, Tag, ShoppingCart, Receipt,
   ShoppingBag, PlusCircle, Users, Truck, CreditCard, Wallet, Shield, Wrench,
   BarChart3, Settings, UserCog, ChevronLeft, ChevronRight, Smartphone,
-  LogOut,
+  LogOut, X,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { initials } from '../../utils/format.js';
@@ -89,29 +89,40 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onMobileClose
   return (
     <aside className={clsx('sidebar', { collapsed, 'mobile-open': mobileOpen })}>
       {/* Brand Header */}
-      <NavLink
-        to="/dashboard"
-        className="sidebar-logo"
-        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
-      >
-        <img
-          src={logoImg}
-          alt="4N Planet POS"
-          style={{
-            width: 38,
-            height: 38,
-            objectFit: 'contain',
-            borderRadius: 'var(--radius-sm)',
-            flexShrink: 0,
-          }}
-        />
-        {!collapsed && (
-          <div className="sidebar-logo-text">
-            <div className="sidebar-logo-name">4N Planet</div>
-            <div className="sidebar-logo-sub">Shop Management</div>
-          </div>
-        )}
-      </NavLink>
+      <div className="sidebar-header-wrapper">
+        <NavLink
+          to="/dashboard"
+          className="sidebar-logo"
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, borderBottom: 'none' }}
+          onClick={onMobileClose}
+        >
+          <img
+            src={logoImg}
+            alt="4N Planet POS"
+            style={{
+              width: 38,
+              height: 38,
+              objectFit: 'contain',
+              borderRadius: 'var(--radius-sm)',
+              flexShrink: 0,
+            }}
+          />
+          {!collapsed && (
+            <div className="sidebar-logo-text">
+              <div className="sidebar-logo-name">4N Planet</div>
+              <div className="sidebar-logo-sub">Shop Management</div>
+            </div>
+          )}
+        </NavLink>
+        <button
+          className="sidebar-mobile-close-btn"
+          onClick={onMobileClose}
+          aria-label="Close menu"
+          title="Close navigation"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
       {/* Navigation Sections */}
       <nav className="sidebar-nav">
