@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { initials } from '../../utils/format.js';
 import clsx from 'clsx';
+import logoImg from '../../assets/4N Planet POS System Logo.png';
 
 const NAV_SECTIONS = [
   {
@@ -88,15 +89,29 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onMobileClose
   return (
     <aside className={clsx('sidebar', { collapsed, 'mobile-open': mobileOpen })}>
       {/* Brand Header */}
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">4N</div>
+      <NavLink
+        to="/dashboard"
+        className="sidebar-logo"
+        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
+      >
+        <img
+          src={logoImg}
+          alt="4N Planet POS"
+          style={{
+            width: 38,
+            height: 38,
+            objectFit: 'contain',
+            borderRadius: 'var(--radius-sm)',
+            flexShrink: 0,
+          }}
+        />
         {!collapsed && (
           <div className="sidebar-logo-text">
             <div className="sidebar-logo-name">4N Planet</div>
             <div className="sidebar-logo-sub">Shop Management</div>
           </div>
         )}
-      </div>
+      </NavLink>
 
       {/* Navigation Sections */}
       <nav className="sidebar-nav">

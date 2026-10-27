@@ -1,10 +1,14 @@
 // src/pages/payments/Payments.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, CreditCard, ArrowDownRight, ArrowUpRight, Filter, Calendar } from 'lucide-react';
+import {
+  Plus, Search, CreditCard, ArrowDownRight, ArrowUpRight,
+  Filter, Calendar, Eye, Trash2, Printer, CheckCircle2, Wallet, Receipt
+} from 'lucide-react';
 import { payments as paymentsApi, customers as customersApi, suppliers as suppliersApi } from '../../services/api.js';
 import { formatCurrency, formatDate, todayISO } from '../../utils/format.js';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
+import logoImg from '../../assets/4N Planet POS System Logo.png';
 
 const PAGE_SIZE = 15;
 
@@ -33,6 +37,13 @@ export default function Payments() {
     notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // View Voucher Modal
+  const [viewPayment, setViewPayment] = useState(null);
+
+  // Delete Modal
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -95,6 +106,21 @@ export default function Payments() {
     }
   };
 
+  const handleDeletePayment = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await paymentsApi.delete(deleteTarget.payment_id);
+      toast.success('Payment record deleted');
+      setDeleteTarget(null);
+      fetchPayments();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete payment');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const paginated = paymentsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalPages = Math.ceil(paymentsList.length / PAGE_SIZE);
 
@@ -110,9 +136,12 @@ export default function Payments() {
   return (
     <div>
       <div className="page-header">
-        <div>
-          <h1 className="page-title">Payments & Receipts</h1>
-          <p className="page-subtitle">Track customer payments, supplier settlements, and cash movement</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src={logoImg} alt="4N Planet" style={{ width: 42, height: 42, objectFit: 'contain' }} />
+          <div>
+            <h1 className="page-title">Payments & Receipts</h1>
+            <p className="page-subtitle">Track customer payments, supplier settlements, and cash movement</p>
+          </div>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
@@ -124,29 +153,67 @@ export default function Payments() {
       {/* KPI Cards */}
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
         <div className="kpi-card">
-          <span className="kpi-label">Total Cash Inflow (Receipts)</span>
-          <span className="kpi-value" style={{ color: 'var(--success-600)' }}>
-            {formatCurrency(totalReceived)}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span className="kpi-label">Cash Inflow (Receipts)</span>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8,
+              background: 'var(--success-light)', color: 'var(--success)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <ArrowDownRight size={18} />
+            </div>
+          </div>
+          <span className="kpi-value" style={{ color: 'var(--success)' }}>
+            +{formatCurrency(totalReceived)}
           </span>
           <span className="kpi-sub">Customer accounts & retail sales</span>
         </div>
+
         <div className="kpi-card">
-          <span className="kpi-label">Total Outflow (Payables)</span>
-          <span className="kpi-value" style={{ color: 'var(--danger-600)' }}>
-            {formatCurrency(totalPaidOut)}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span className="kpi-label">Cash Outflow (Disbursements)</span>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8,
+              background: 'var(--danger-light)', color: 'var(--danger)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <ArrowUpRight size={18} />
+            </div>
+          </div>
+          <span className="kpi-value" style={{ color: 'var(--danger)' }}>
+            -{formatCurrency(totalPaidOut)}
           </span>
-          <span className="kpi-sub">Supplier settlements</span>
+          <span className="kpi-sub">Supplier settlements & payables</span>
         </div>
+
         <div className="kpi-card">
-          <span className="kpi-label">Net Operating Flow</span>
-          <span className="kpi-value" style={{ color: totalReceived >= totalPaidOut ? 'var(--blue-400)' : 'var(--danger-600)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span className="kpi-label">Net Operating Flow</span>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8,
+              background: 'var(--primary-light)', color: 'var(--primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Wallet size={18} />
+            </div>
+          </div>
+          <span
+            className="kpi-value"
+            style={{ color: totalReceived >= totalPaidOut ? 'var(--primary)' : 'var(--danger)' }}
+          >
             {formatCurrency(totalReceived - totalPaidOut)}
           </span>
-          <span className="kpi-sub">{paymentsList.length} transactions</span>
+          <span className="kpi-sub">{paymentsList.length} total transactions</span>
         </div>
       </div>
 
       <div className="card">
+        <div className="card-header">
+          <h2 className="card-title">
+            <Receipt size={17} /> Payment & Receipt Transactions
+          </h2>
+        </div>
+
         {/* Filter bar */}
         <div className="filter-bar" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div className="search-input-wrapper" style={{ minWidth: 260 }}>
@@ -191,22 +258,23 @@ export default function Payments() {
             <p>Loading transactions...</p>
           </div>
         ) : paymentsList.length === 0 ? (
-          <div className="empty-state">
-            <CreditCard size={36} />
+          <div className="empty-state" style={{ padding: 48 }}>
+            <CreditCard size={36} style={{ color: 'var(--text-secondary)', marginBottom: 8 }} />
             <p>No payment records found.</p>
           </div>
         ) : (
           <div className="table-responsive">
-            <table className="table">
+            <table>
               <thead>
                 <tr>
-                  <th>Payment ID</th>
+                  <th>Voucher ID</th>
                   <th>Date</th>
                   <th>Type</th>
-                  <th>Party / Customer / Supplier</th>
+                  <th>Party Name</th>
                   <th>Method</th>
-                  <th>Reference</th>
+                  <th>Reference / Note</th>
                   <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,18 +282,35 @@ export default function Payments() {
                   const isInflow = p.payment_type === 'customer_receipt' || p.payment_type === 'sale_payment';
                   return (
                     <tr key={p.payment_id}>
-                      <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{p.payment_id}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{p.payment_id}</td>
                       <td>{formatDate(p.payment_date || p.created_at)}</td>
                       <td>
                         <span className={clsx('badge', isInflow ? 'badge-green' : 'badge-amber')}>
                           {isInflow ? 'Receipt (In)' : 'Payment (Out)'}
                         </span>
                       </td>
-                      <td style={{ fontWeight: 500 }}>{p.party_name || p.party_id || '—'}</td>
+                      <td style={{ fontWeight: 600 }}>{p.party_name || p.party_id || '—'}</td>
                       <td style={{ textTransform: 'capitalize' }}>{p.payment_method}</td>
                       <td style={{ color: 'var(--text-secondary)' }}>{p.reference_number || p.reference_note || '—'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: isInflow ? 'var(--success-600)' : 'var(--danger-600)' }}>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: isInflow ? 'var(--success)' : 'var(--danger)' }}>
                         {isInflow ? '+' : '-'}{formatCurrency(p.amount)}
+                      </td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <button
+                          className="btn btn-ghost btn-sm btn-icon"
+                          onClick={() => setViewPayment(p)}
+                          title="View Payment Voucher"
+                        >
+                          <Eye size={15} />
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm btn-icon"
+                          style={{ color: 'var(--danger)' }}
+                          onClick={() => setDeleteTarget(p)}
+                          title="Delete Payment Record"
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -237,7 +322,7 @@ export default function Payments() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div className="pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px' }}>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, paymentsList.length)} of {paymentsList.length}
             </span>
@@ -264,7 +349,7 @@ export default function Payments() {
       {/* Record Payment Modal */}
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 480 }}>
+          <div className="modal" style={{ maxWidth: 480 }}>
             <div className="modal-header">
               <h3 className="modal-title">Record Payment / Receipt</h3>
               <button className="btn-close" onClick={() => setShowModal(false)}>&times;</button>
@@ -322,29 +407,31 @@ export default function Payments() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Payment Date *</label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    value={form.payment_date}
-                    onChange={(e) => setForm({ ...form, payment_date: e.target.value })}
-                    required
-                  />
-                </div>
+                <div className="grid-2" style={{ gap: 12 }}>
+                  <div className="form-group">
+                    <label className="form-label">Payment Date *</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={form.payment_date}
+                      onChange={(e) => setForm({ ...form, payment_date: e.target.value })}
+                      required
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label className="form-label">Payment Method *</label>
-                  <select
-                    className="form-select"
-                    value={form.payment_method}
-                    onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="mobile_payment">Mobile Payment</option>
-                  </select>
+                  <div className="form-group">
+                    <label className="form-label">Payment Method *</label>
+                    <select
+                      className="form-select"
+                      value={form.payment_method}
+                      onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="card">Card</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="mobile_payment">Mobile Payment</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -352,7 +439,7 @@ export default function Payments() {
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Slip #, Cheque #, or note..."
+                    placeholder="Slip #, Cheque #, or context..."
                     value={form.reference_number}
                     onChange={(e) => setForm({ ...form, reference_number: e.target.value })}
                   />
@@ -367,6 +454,93 @@ export default function Payments() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View / Print Voucher Modal */}
+      {viewPayment && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Payment Voucher</h3>
+              <button className="btn-close" onClick={() => setViewPayment(null)}>&times;</button>
+            </div>
+            <div className="modal-body" id="printable-voucher">
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <img src={logoImg} alt="4N Planet" style={{ width: 52, height: 52, objectFit: 'contain', margin: '0 auto 6px' }} />
+                <h4 style={{ margin: 0, fontWeight: 700, fontSize: 16, color: 'var(--navy-dark)' }}>4N Planet</h4>
+                <p style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>Mobile Phones & Accessories</p>
+                <span className={clsx('badge', viewPayment.payment_type?.includes('receipt') ? 'badge-green' : 'badge-amber')} style={{ marginTop: 6 }}>
+                  {viewPayment.payment_type?.includes('receipt') ? 'Receipt Voucher (Cash In)' : 'Payment Voucher (Cash Out)'}
+                </span>
+              </div>
+
+              <div style={{ background: 'var(--neutral-surface)', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Voucher ID:</span>
+                  <strong style={{ fontFamily: 'var(--font-mono)' }}>{viewPayment.payment_id}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Date:</span>
+                  <span>{formatDate(viewPayment.payment_date || viewPayment.created_at)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Party Name:</span>
+                  <strong>{viewPayment.party_name || viewPayment.party_id || '—'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Payment Method:</span>
+                  <span style={{ textTransform: 'capitalize' }}>{viewPayment.payment_method}</span>
+                </div>
+                {viewPayment.reference_number && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Reference:</span>
+                    <span>{viewPayment.reference_number}</span>
+                  </div>
+                )}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600 }}>Total Amount:</span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: viewPayment.payment_type?.includes('receipt') ? 'var(--success)' : 'var(--danger)' }}>
+                    {formatCurrency(viewPayment.amount)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setViewPayment(null)}>
+                Close
+              </button>
+              <button className="btn btn-primary" onClick={() => window.print()}>
+                <Printer size={15} /> Print Voucher
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 420 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Delete Payment</h3>
+              <button className="btn-close" onClick={() => setDeleteTarget(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete payment <strong>{deleteTarget.payment_id}</strong>?</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 8 }}>
+                Party: <strong>{deleteTarget.party_name || deleteTarget.party_id}</strong> · Amount: <strong>{formatCurrency(deleteTarget.amount)}</strong>
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" onClick={handleDeletePayment} disabled={deleting}>
+                {deleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

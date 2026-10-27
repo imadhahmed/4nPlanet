@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import logoImg from '../../assets/4N Planet POS System Logo.png';
 
 export default function Login() {
   const { login } = useAuth();
@@ -44,23 +45,19 @@ export default function Login() {
         maxWidth: 420,
       }}>
         {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{
-            width: 52,
-            height: 52,
-            background: 'var(--primary)',
-            borderRadius: 'var(--radius-lg)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            fontWeight: 800,
-            color: '#FFFFFF',
-            marginBottom: 14,
-            boxShadow: '0 4px 12px rgba(49, 87, 213, 0.25)',
-          }}>
-            4N
-          </div>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <img
+            src={logoImg}
+            alt="4N Planet POS System"
+            style={{
+              width: 140,
+              height: 140,
+              objectFit: 'contain',
+              margin: '0 auto 12px',
+              display: 'block',
+              filter: 'drop-shadow(0 6px 16px rgba(49, 87, 213, 0.16))',
+            }}
+          />
           <h1 style={{
             fontSize: 24,
             fontWeight: 800,
@@ -68,7 +65,7 @@ export default function Login() {
             margin: 0,
             letterSpacing: '-0.4px',
           }}>
-            4N Planet
+            4N Planet POS
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 4 }}>
             Mobile Phone Shop Management Dashboard

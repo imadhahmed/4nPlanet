@@ -5,6 +5,7 @@ import { Printer, ArrowLeft, Package, User, Calendar, CreditCard, AlertCircle, T
 import { sales as salesApi } from '../../services/api.js';
 import { formatCurrency, formatDate, formatDateTime, paymentStatusBadge } from '../../utils/format.js';
 import toast from 'react-hot-toast';
+import logoImg from '../../assets/4N Planet POS System Logo.png';
 
 export default function SaleDetail() {
   const { id } = useParams();
@@ -69,9 +70,16 @@ export default function SaleDetail() {
       <div className="invoice card" style={{ maxWidth: 720, margin: '0 auto', padding: 40 }}>
         {/* Header */}
         <div className="invoice-header">
-          <div>
-            <div className="invoice-brand">4N Planet</div>
-            <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>Mobile Phone Shop</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img
+              src={logoImg}
+              alt="4N Planet"
+              style={{ width: 56, height: 56, objectFit: 'contain' }}
+            />
+            <div>
+              <div className="invoice-brand">4N Planet</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Mobile Phone & Accessories</div>
+            </div>
           </div>
           <div className="invoice-meta">
             <div className="invoice-number">{sale.invoice_number}</div>
