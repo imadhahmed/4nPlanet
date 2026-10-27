@@ -30,22 +30,22 @@ try {
   }
 } catch { /* ignore */ }
 
-const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.GOOGLE_SHEET_ID;
+const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
 export function getSpreadsheetId() {
-  return process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.GOOGLE_SHEET_ID;
+  return process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 }
 
 export function isGoogleConfigured() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const key = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetId = getSpreadsheetId();
+  const sheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
   return Boolean(email && key && sheetId && !sheetId.includes('your_spreadsheet_id'));
 }
 
 function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const key = (process.env.GOOGLE_PRIVATE_KEY || '').replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
+  const key = (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
 
   if (!email || !key) {
     throw new Error('Google service account credentials are not configured. Set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY.');
