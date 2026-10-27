@@ -30,9 +30,10 @@ const app = express();
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS for local dev
+// CORS
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  const origin = req.headers.origin || 'http://localhost:5173';
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -104,9 +105,22 @@ app.use('/api', (req, res) => {
   res.status(404).json({ success: false, message: `API route not found: ${req.path}` });
 });
 
+// Serve frontend in production (when dist exists)
+const distPath = path.join(__dirname, 'dist');
+if (existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`\n🚀 4N Planet API server running at http://localhost:${PORT}`);
-  console.log(`   Frontend dev server: http://localhost:5173`);
+  console.log(`\n🚀 4N Planet server running at http://localhost:${PORT}`);
+  if (existsSync(distPath)) {
+    console.log(`   Serving production frontend from dist/`);
+  } else {
+    console.log(`   Frontend dev server: http://localhost:5173`);
+  }
   console.log(`   Press Ctrl+C to stop\n`);
 });
