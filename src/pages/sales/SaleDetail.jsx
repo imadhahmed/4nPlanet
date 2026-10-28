@@ -1,7 +1,7 @@
 // src/pages/sales/SaleDetail.jsx — Invoice view + print
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Printer, ArrowLeft, Package, User, Calendar, CreditCard, AlertCircle, Trash2 } from 'lucide-react';
+import { Printer, ArrowLeft, Package, User, Calendar, CreditCard, AlertCircle, Trash2, RotateCcw } from 'lucide-react';
 import { sales as salesApi } from '../../services/api.js';
 import { formatCurrency, formatDate, formatDateTime, paymentStatusBadge } from '../../utils/format.js';
 import toast from 'react-hot-toast';
@@ -60,6 +60,15 @@ export default function SaleDetail() {
           <button className="btn btn-secondary" onClick={handlePrint}>
             <Printer size={15} /> Print Invoice
           </button>
+          {sale.sale_status !== 'cancelled' && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate(`/returns?tab=new&invoice=${encodeURIComponent(sale.invoice_number)}`)}
+              title="Process Return or Exchange"
+            >
+              <RotateCcw size={15} /> Return / Exchange
+            </button>
+          )}
           <button className="btn btn-danger btn-icon" onClick={() => setShowDeleteModal(true)} title="Cancel / Delete Sale">
             <Trash2 size={16} />
           </button>

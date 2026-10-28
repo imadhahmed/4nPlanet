@@ -1,1 +1,46 @@
-[]
+[
+  {
+    "log_id": "LOG-000001",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed cash_refund return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-10-28T17:07:25.842Z"
+  },
+  {
+    "log_id": "LOG-000002",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed cash_refund return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-10-28T17:07:25.851Z"
+  },
+  {
+    "log_id": "LOG-000003",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed exchange_diff return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-10-28T17:07:25.863Z"
+  },
+  {
+    "log_id": "LOG-000004",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed exchange_same return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-10-28T17:07:25.872Z"
+  }
+]

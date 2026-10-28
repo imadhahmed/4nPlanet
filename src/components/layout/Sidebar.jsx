@@ -2,7 +2,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Package, Tag, ShoppingCart, Receipt,
+  LayoutDashboard, Package, Tag, ShoppingCart, Receipt, RotateCcw,
   ShoppingBag, PlusCircle, Users, Truck, CreditCard, Wallet, Shield, Wrench,
   BarChart3, Settings, UserCog, ChevronLeft, ChevronRight, Smartphone,
   LogOut, X,
@@ -24,6 +24,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/pos', icon: ShoppingCart, label: 'Point of Sale', permission: 'sales.create' },
       { to: '/sales', icon: Receipt, label: 'Sales History' },
+      { to: '/returns', icon: RotateCcw, label: 'Returns & Exchanges', permission: 'sales.return' },
     ],
   },
   {

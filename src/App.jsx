@@ -16,6 +16,7 @@ const Brands = lazy(() => import('./pages/brands/Brands.jsx'));
 const POS = lazy(() => import('./pages/pos/POS.jsx'));
 const SaleList = lazy(() => import('./pages/sales/SaleList.jsx'));
 const SaleDetail = lazy(() => import('./pages/sales/SaleDetail.jsx'));
+const Returns = lazy(() => import('./pages/returns/Returns.jsx'));
 const PurchaseList = lazy(() => import('./pages/purchases/PurchaseList.jsx'));
 const PurchaseForm = lazy(() => import('./pages/purchases/PurchaseForm.jsx'));
 const PurchaseDetail = lazy(() => import('./pages/purchases/PurchaseDetail.jsx'));
@@ -74,6 +75,8 @@ function AppRoutes() {
           <Route path="pos" element={<PrivateRoute permission="sales.create"><POS /></PrivateRoute>} />
           <Route path="sales" element={<SaleList />} />
           <Route path="sales/:id" element={<SaleDetail />} />
+          <Route path="returns" element={<PrivateRoute permission="sales.return"><Returns /></PrivateRoute>} />
+          <Route path="returns/new" element={<PrivateRoute permission="sales.return"><Returns defaultTab="new" /></PrivateRoute>} />
 
           {/* Purchases */}
           <Route path="purchases" element={<PurchaseList />} />

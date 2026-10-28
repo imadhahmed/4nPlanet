@@ -56,7 +56,7 @@ export function AuthProvider({ children }) {
       ],
       cashier: [
         'products.view', 'inventory.view',
-        'sales.create', 'sales.view',
+        'sales.create', 'sales.view', 'sales.return',
         'customers.view', 'customers.create', 'customers.edit',
         'payments.view', 'payments.create',
         'warranties.view', 'repairs.view', 'repairs.create',

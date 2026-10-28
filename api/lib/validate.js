@@ -298,6 +298,31 @@ export const UpdateRepairSchema = z.object({
 // ─────────────────────────────────────────────
 // SETTINGS
 // ─────────────────────────────────────────────
+export const ProcessReturnSchema = z.object({
+  sale_id: z.string().min(1, 'Original sale ID is required'),
+  return_type: z.enum(['exchange_same', 'exchange_diff', 'cash_refund']),
+  returned_item: z.object({
+    item_id: z.string().optional().default(''),
+    product_id: z.string().min(1, 'Product ID is required'),
+    product_name: z.string().optional().default(''),
+    quantity: z.number().int().min(1, 'Return quantity must be at least 1'),
+    condition: z.enum(['restock', 'damaged']).default('restock'),
+    serial_id: z.string().optional().default(''),
+    imei1: z.string().optional().default(''),
+  }),
+  exchange_item: z.object({
+    product_id: z.string().min(1, 'Exchange product ID is required'),
+    quantity: z.number().int().min(1, 'Exchange quantity must be at least 1').default(1),
+  }).optional().nullable(),
+  reason: z.string().min(1, 'Return reason is required'),
+  refund_amount: z.number().min(0).optional().default(0),
+  difference_amount: z.number().optional().default(0),
+  payment_method: z.string().optional().default('cash'),
+  reference_number: z.string().optional().default(''),
+  notes: z.string().optional().default(''),
+  idempotency_key: z.string().optional().default(''),
+});
+
 export const SettingSchema = z.object({
   key: z.string().min(1),
   value: z.string(),

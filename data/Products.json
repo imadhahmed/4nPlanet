@@ -78,7 +78,7 @@
     "warranty_months": 6,
     "warranty_duration": "6",
     "created_at": "2026-10-27T05:17:59.507Z",
-    "updated_at": "2026-10-27T05:17:59.507Z"
+    "updated_at": "2026-10-28T17:07:25.868Z"
   },
   {
     "product_id": "PROD-000004",
@@ -98,13 +98,13 @@
     "retail_price": 45000,
     "wholesale_price": 40000,
     "min_price": 38000,
-    "stock_quantity": 6,
+    "stock_quantity": 5,
     "min_stock_level": 2,
     "is_serialized": "false",
     "is_active": "true",
     "warranty_months": 3,
     "warranty_duration": "3",
     "created_at": "2026-10-27T05:17:59.507Z",
-    "updated_at": "2026-10-27T05:17:59.507Z"
+    "updated_at": "2026-10-28T17:07:25.856Z"
   }
 ]

@@ -37,6 +37,9 @@ export function getSpreadsheetId() {
 }
 
 export function isGoogleConfigured() {
+  if (process.env.FORCE_LOCAL_DATA === 'true' || process.env.VITEST === 'true') {
+    return false;
+  }
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const key = process.env.GOOGLE_PRIVATE_KEY;
   const sheetId = getSpreadsheetId();
@@ -184,12 +187,15 @@ export const SHEET_HEADERS = {
   ],
   Returns: [
     'return_id', 'return_number', 'original_sale_id', 'original_invoice',
-    'customer_id', 'customer_name', 'return_date', 'reason',
-    'items_json', // JSON string of returned items
+    'customer_id', 'customer_name', 'return_type', 'return_date', 'reason',
+    'product_id', 'product_name', 'quantity', 'unit_price', 'total_amount',
+    'exchange_product_id', 'exchange_product_name', 'exchange_quantity', 'exchange_unit_price',
+    'difference_amount',
+    'payment_method',
     'refund_amount', 'refund_method', 'refund_reference',
     'stock_action', // restock | damaged | discard
     'status', // pending | approved | completed | rejected
-    'processed_by', 'notes', 'created_at', 'updated_at',
+    'processed_by', 'processed_by_name', 'items_json', 'notes', 'created_at', 'updated_at',
   ],
   Settings: [
     'key', 'value', 'description', 'updated_at', 'updated_by',

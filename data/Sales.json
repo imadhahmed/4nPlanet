@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "sale_id": "SALE-TEST-001",
+    "invoice_number": "INV-TEST-001",
+    "customer_id": "WALK_IN",
+    "customer_name": "Walk-in Customer",
+    "cashier_id": "USR-000002",
+    "cashier_name": "Cashier Staff",
+    "sale_date": "2026-10-28",
+    "subtotal": 13000,
+    "discount_amount": 0,
+    "tax_amount": 0,
+    "grand_total": 13000,
+    "amount_paid": 13000,
+    "outstanding_balance": 0,
+    "payment_status": "paid",
+    "sale_status": "partially_returned",
+    "notes": "Test sale",
+    "created_at": "2026-10-28T17:07:25.821Z",
+    "updated_at": "2026-10-28T17:07:25.868Z"
+  }
+]

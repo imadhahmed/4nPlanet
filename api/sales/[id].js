@@ -126,12 +126,15 @@ export default asyncHandler(async (req, res) => {
   if (req.method === 'GET') {
     const payments = await readSheet('Payments');
     const salePayments = payments.filter((p) => p.related_id === id);
+    const returns = await readSheet('Returns');
+    const saleReturns = returns.filter((r) => r.original_sale_id === id || r.sale_id === id);
 
     return ok(res, {
       sale: {
         ...sale,
         items: saleItems,
         payments: salePayments,
+        returns: saleReturns,
       },
     });
   }

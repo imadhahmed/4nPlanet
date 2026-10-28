@@ -183,7 +183,7 @@ const PERMISSIONS = {
   'sales.view': ['admin', 'manager', 'cashier'],
   'sales.discount': ['admin', 'manager'], // Apply discounts beyond threshold
   'sales.cancel': ['admin', 'manager'],
-  'sales.return': ['admin', 'manager'],
+  'sales.return': ['admin', 'manager', 'cashier'],
 
   // Purchases
   'purchases.view': ['admin', 'manager', 'stock_manager'],

@@ -90,6 +90,14 @@ export const sales = {
   items: (id) => client.get(`/sales/${id}/items`),
 };
 
+// ─── Returns & Exchanges ─────────────────────────────────
+export const returns = {
+  list: (params) => client.get('/returns', { params }),
+  get: (id) => client.get(`/returns/${id}`),
+  create: (data) => client.post('/returns', data),
+  lookup: (params) => client.get('/returns', { params: { action: 'lookup', ...params } }),
+};
+
 // ─── Purchases ───────────────────────────────────────────
 export const purchases = {
   list: (params) => client.get('/purchases', { params }),

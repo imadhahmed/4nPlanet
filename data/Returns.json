@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "return_id": "RET-000001",
+    "return_number": "RET-000001",
+    "original_sale_id": "SALE-TEST-001",
+    "original_invoice": "INV-TEST-001",
+    "customer_id": "WALK_IN",
+    "customer_name": "Walk-in Customer",
+    "return_type": "exchange_same",
+    "return_date": "2026-10-28",
+    "reason": "Same unit replacement for faulty cable pin",
+    "product_id": "PROD-000003",
+    "product_name": "Anker 30W USB-C GaN Charger",
+    "quantity": 1,
+    "unit_price": 6500,
+    "total_amount": 6500,
+    "exchange_product_id": "PROD-000003",
+    "exchange_product_name": "Anker 30W USB-C GaN Charger",
+    "exchange_quantity": 1,
+    "exchange_unit_price": 6500,
+    "difference_amount": 0,
+    "payment_method": "cash",
+    "refund_amount": 0,
+    "refund_method": "",
+    "refund_reference": "",
+    "stock_action": "restock",
+    "status": "completed",
+    "processed_by": "USR-000002",
+    "processed_by_name": "Cashier Staff",
+    "items_json": "{\"returned_item\":{\"product_id\":\"PROD-000003\",\"product_name\":\"Anker 30W USB-C GaN Charger\",\"model\":\"A2147 / White\",\"sku\":\"ANK-GAN-30W\",\"quantity\":1,\"unit_price\":6500,\"effective_unit_price\":6500,\"total_credit\":6500,\"condition\":\"restock\",\"serial_id\":\"\",\"imei1\":\"\"},\"exchange_item\":{\"product_id\":\"PROD-000003\",\"product_name\":\"Anker 30W USB-C GaN Charger\",\"model\":\"A2147 / White\",\"sku\":\"ANK-GAN-30W\",\"quantity\":1,\"unit_price\":6500,\"total_price\":0}}",
+    "notes": "",
+    "created_at": "2026-10-28T17:07:25.868Z",
+    "updated_at": "2026-10-28T17:07:25.868Z"
+  }
+]

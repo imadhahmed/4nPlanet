@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "payment_id": "PAY-000001",
+    "payment_type": "customer_receipt",
+    "related_id": "RET-000001",
+    "party_id": "WALK_IN",
+    "party_name": "Walk-in Customer",
+    "party_type": "customer",
+    "amount": 38500,
+    "payment_method": "card",
+    "reference_number": "CARD-AUTH-1234",
+    "payment_date": "2026-10-28",
+    "notes": "Exchange difference collected for Return RET-000001 (Inv INV-TEST-001)",
+    "recorded_by": "USR-000002",
+    "idempotency_key": "diff-RET-000001",
+    "created_at": "2026-10-28T17:07:25.856Z"
+  }
+]

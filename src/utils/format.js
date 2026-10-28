@@ -86,8 +86,18 @@ export function saleStatusBadge(status) {
     completed: 'badge-green',
     cancelled: 'badge-red',
     returned: 'badge-amber',
+    partially_returned: 'badge-blue',
   };
   return map[status] || 'badge-gray';
+}
+
+export function returnTypeBadge(type) {
+  const map = {
+    exchange_same: { label: 'Same Exchange', className: 'badge-blue' },
+    exchange_diff: { label: 'Different Exchange', className: 'badge-purple' },
+    cash_refund: { label: 'Cash Refund', className: 'badge-amber' },
+  };
+  return map[type] || { label: type || 'Return', className: 'badge-gray' };
 }
 
 export function warrantyStatusBadge(status) {
