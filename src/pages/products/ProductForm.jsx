@@ -16,6 +16,9 @@ export default function ProductForm() {
   const [brandList, setBrandList] = useState([]);
   const [supplierList, setSupplierList] = useState([]);
 
+  const [customCategory, setCustomCategory] = useState('');
+  const [customBrand, setCustomBrand] = useState('');
+
   const [form, setForm] = useState({
     name: '',
     brand_id: '',
@@ -106,7 +109,13 @@ export default function ProductForm() {
     e.preventDefault();
     if (!form.name.trim()) return toast.error('Product name is required');
     if (!form.category_id) return toast.error('Please select a category');
+    if (form.category_id === '__other__' && !customCategory.trim()) {
+      return toast.error('Please enter the category name');
+    }
     if (!form.brand_id) return toast.error('Please select a brand');
+    if (form.brand_id === '__other__' && !customBrand.trim()) {
+      return toast.error('Please enter the brand name');
+    }
     if (form.purchase_cost === '' || Number(form.purchase_cost) < 0) {
       return toast.error('Valid purchase cost is required');
     }
@@ -116,10 +125,57 @@ export default function ProductForm() {
 
     setLoading(true);
     try {
+      let finalCategoryId = form.category_id;
+      let finalBrandId = form.brand_id;
+
+      // Handle "Others" category creation or selection
+      if (form.category_id === '__other__') {
+        const catNameTrimmed = customCategory.trim();
+        const existingCat = catList.find(
+          (c) => c.name.toLowerCase() === catNameTrimmed.toLowerCase()
+        );
+        if (existingCat) {
+          finalCategoryId = existingCat.category_id;
+        } else {
+          const res = await categories.create({
+            name: catNameTrimmed,
+            description: 'Created from Add Product (Others)',
+            is_active: true,
+          });
+          const createdCat = res.data?.data?.category;
+          if (createdCat?.category_id) {
+            finalCategoryId = createdCat.category_id;
+            setCatList((prev) => [...prev, createdCat]);
+          }
+        }
+      }
+
+      // Handle "Others" brand creation or selection
+      if (form.brand_id === '__other__') {
+        const brandNameTrimmed = customBrand.trim();
+        const existingBrand = brandList.find(
+          (b) => b.name.toLowerCase() === brandNameTrimmed.toLowerCase()
+        );
+        if (existingBrand) {
+          finalBrandId = existingBrand.brand_id;
+        } else {
+          const res = await brands.create({
+            name: brandNameTrimmed,
+            description: 'Created from Add Product (Others)',
+            is_active: true,
+          });
+          const createdBrand = res.data?.data?.brand;
+          if (createdBrand?.brand_id) {
+            finalBrandId = createdBrand.brand_id;
+            setBrandList((prev) => [...prev, createdBrand]);
+          }
+        }
+      }
+
       const payload = {
         name: form.name.trim(),
-        brand_id: form.brand_id,
-        category_id: form.category_id,
+        brand_id: finalBrandId,
+        category_id: finalCategoryId,
         subcategory_id: form.subcategory_id || '',
         model: form.model || '',
         sku: form.sku || '',
@@ -213,7 +269,21 @@ export default function ProductForm() {
                     {c.name}
                   </option>
                 ))}
+                <option value="__other__">+ Others (Custom Category)</option>
               </select>
+              {form.category_id === '__other__' && (
+                <div style={{ marginTop: 8 }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter custom category name"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -231,7 +301,21 @@ export default function ProductForm() {
                     {b.name}
                   </option>
                 ))}
+                <option value="__other__">+ Others (Custom Brand)</option>
               </select>
+              {form.brand_id === '__other__' && (
+                <div style={{ marginTop: 8 }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter custom brand name"
+                    value={customBrand}
+                    onChange={(e) => setCustomBrand(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
 
             <div className="form-group">
