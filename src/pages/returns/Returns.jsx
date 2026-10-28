@@ -11,7 +11,7 @@ import {
   RotateCcw, ArrowLeftRight, Banknote, Search, Printer, CheckCircle,
   AlertCircle, RefreshCw, Plus, X, Package, Check, ArrowRight,
   User, Calendar, ShieldCheck, AlertTriangle, ChevronRight,
-  Receipt, ArrowDownLeft, ArrowUpRight, Filter
+  Receipt, ArrowDownLeft, ArrowUpRight, Filter, Clock, ShoppingBag
 } from 'lucide-react';
 import {
   returns as returnsApi,
@@ -69,10 +69,15 @@ export default function Returns({ defaultTab = 'history' }) {
   // ─────────────────────────────────────────────
   // NEW RETURN WIZARD STATE
   // ─────────────────────────────────────────────
+  // Step 1 Search Mode: 'invoice' | 'product' | 'recent_sales'
+  const [step1Mode, setStep1Mode] = useState('invoice');
   const [invoiceSearch, setInvoiceSearch] = useState(searchParams.get('invoice') || '');
+  const [productSoldQuery, setProductSoldQuery] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [selectedSaleResult, setSelectedSaleResult] = useState(null);
   const [lookupResults, setLookupResults] = useState([]);
+  const [recentSalesList, setRecentSalesList] = useState([]);
+  const [recentSalesLoading, setRecentSalesLoading] = useState(false);
 
   // Selected item to return
   const [selectedItem, setSelectedItem] = useState(null);
@@ -143,8 +148,23 @@ export default function Returns({ defaultTab = 'history' }) {
         })
         .catch(() => {})
         .finally(() => setCatalogLoading(false));
+
+      loadRecentSales();
     }
   }, [activeTab]);
+
+  // Load recent sales history for direct selection
+  const loadRecentSales = async () => {
+    setRecentSalesLoading(true);
+    try {
+      const res = await returnsApi.lookup({ action: 'recent_sales' });
+      setRecentSalesList(res.data.data.results || []);
+    } catch {
+      // Non-critical background load
+    } finally {
+      setRecentSalesLoading(false);
+    }
+  };
 
   // Auto-search invoice if URL param exists
   useEffect(() => {
@@ -156,7 +176,7 @@ export default function Returns({ defaultTab = 'history' }) {
   }, []);
 
   // ─────────────────────────────────────────────
-  // INVOICE LOOKUP
+  // INVOICE & PRODUCT LOOKUP
   // ─────────────────────────────────────────────
   const handleLookupInvoice = async (queryToSearch) => {
     const term = (queryToSearch || invoiceSearch).trim();
@@ -184,7 +204,34 @@ export default function Returns({ defaultTab = 'history' }) {
     }
   };
 
-  const selectSale = (saleData) => {
+  // Lookup sales by product name, model, barcode or SKU
+  const handleProductLookup = async (queryTerm) => {
+    const term = (queryTerm !== undefined ? queryTerm : productSoldQuery).trim();
+    if (!term) {
+      toast.error('Please enter a product name, model, barcode or SKU');
+      return;
+    }
+
+    setLookupLoading(true);
+    try {
+      const res = await returnsApi.lookup({ product: term });
+      const results = res.data.data.results || [];
+      setLookupResults(results);
+
+      if (results.length === 1) {
+        selectSale(results[0], term);
+      } else if (results.length === 0) {
+        setSelectedSaleResult(null);
+        toast.error(`No sales found containing product "${term}"`);
+      }
+    } catch (err) {
+      toast.error('Error finding sales for product. Please try again.');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  const selectSale = (saleData, matchedProductTerm) => {
     setSelectedSaleResult(saleData);
     setLookupResults([]);
     setSelectedItem(null);
@@ -193,10 +240,19 @@ export default function Returns({ defaultTab = 'history' }) {
     setExchangeQuantity(1);
     setRefundAmountOverride('');
 
-    // Pre-select first eligible item if available
-    const firstEligible = saleData.items.find((i) => i.eligible_quantity > 0);
-    if (firstEligible) {
-      setSelectedItem(firstEligible);
+    // Pre-select matched item by product search, or first eligible item
+    let targetItem = null;
+    if (matchedProductTerm) {
+      targetItem = saleData.items.find(
+        (i) => i.is_matched_product && i.eligible_quantity > 0
+      );
+    }
+    if (!targetItem) {
+      targetItem = saleData.items.find((i) => i.eligible_quantity > 0);
+    }
+
+    if (targetItem) {
+      setSelectedItem(targetItem);
       setReturnQuantity(1);
     }
   };
@@ -474,68 +530,363 @@ export default function Returns({ defaultTab = 'history' }) {
       ═════════════════════════════════════════════ */}
       {activeTab === 'new' && (
         <div className="no-print" style={{ maxWidth: 960, margin: '0 auto' }}>
-          {/* Step 1: Search Original Invoice */}
+          {/* Step 1: Find Original Sale (By Invoice, Product, or Sales History) */}
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header" style={{ paddingBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  width: '100%',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      background: 'var(--primary)',
+                      color: '#FFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    1
+                  </div>
+                  <div>
+                    <h3 className="card-title" style={{ fontSize: 16 }}>
+                      Find Original Sale
+                    </h3>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                      Search by invoice/customer, search by product, or select directly from sales history
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search Mode Selector Tabs */}
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    background: 'var(--primary)',
-                    color: '#FFF',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 13,
-                    fontWeight: 700,
+                    gap: 4,
+                    background: 'var(--neutral-surface)',
+                    padding: 3,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
                   }}
                 >
-                  1
-                </div>
-                <div>
-                  <h3 className="card-title" style={{ fontSize: 16 }}>
-                    Find Original Purchase Invoice
-                  </h3>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    Scan or enter the invoice number (e.g. INV-000001) or search by customer name
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep1Mode('invoice');
+                      setLookupResults([]);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: 'none',
+                      background: step1Mode === 'invoice' ? '#FFFFFF' : 'transparent',
+                      color: step1Mode === 'invoice' ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: step1Mode === 'invoice' ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      boxShadow: step1Mode === 'invoice' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <Search size={13} />
+                    <span>By Invoice / Customer</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep1Mode('product');
+                      setLookupResults([]);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: 'none',
+                      background: step1Mode === 'product' ? '#FFFFFF' : 'transparent',
+                      color: step1Mode === 'product' ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: step1Mode === 'product' ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      boxShadow: step1Mode === 'product' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <Package size={13} />
+                    <span>Search by Product</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep1Mode('recent_sales');
+                      setLookupResults([]);
+                      loadRecentSales();
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: 'none',
+                      background: step1Mode === 'recent_sales' ? '#FFFFFF' : 'transparent',
+                      color: step1Mode === 'recent_sales' ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: step1Mode === 'recent_sales' ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      boxShadow: step1Mode === 'recent_sales' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <Clock size={13} />
+                    <span>Sales History</span>
+                  </button>
                 </div>
               </div>
             </div>
 
             <div className="card-body">
-              <div style={{ display: 'flex', gap: 10, position: 'relative' }}>
-                <div className="search-input-wrapper" style={{ flex: 1 }}>
-                  <Search size={16} className="search-icon" />
-                  <input
-                    type="search"
-                    className="form-input"
-                    placeholder="Enter Invoice # (e.g., INV-000001) or customer name/phone..."
-                    value={invoiceSearch}
-                    onChange={(e) => setInvoiceSearch(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleLookupInvoice()}
-                    autoFocus
-                  />
+              {/* Mode 1: Search by Invoice Number or Customer Name */}
+              {step1Mode === 'invoice' && (
+                <div style={{ display: 'flex', gap: 10, position: 'relative' }}>
+                  <div className="search-input-wrapper" style={{ flex: 1, position: 'relative' }}>
+                    <Search size={16} className="search-icon" />
+                    <input
+                      type="search"
+                      className="form-input"
+                      placeholder="Enter Invoice # (e.g., INV-000001) or customer name/phone..."
+                      value={invoiceSearch}
+                      onChange={(e) => setInvoiceSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleLookupInvoice()}
+                      autoFocus
+                    />
+                    {invoiceSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceSearch('')}
+                        style={{
+                          position: 'absolute',
+                          right: 10,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => handleLookupInvoice()}
+                    disabled={lookupLoading}
+                    style={{ minWidth: 130 }}
+                  >
+                    {lookupLoading ? 'Searching…' : 'Search Invoice'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => handleLookupInvoice()}
-                  disabled={lookupLoading}
-                  style={{ minWidth: 120 }}
-                >
-                  {lookupLoading ? 'Searching…' : 'Search Invoice'}
-                </button>
-              </div>
+              )}
+
+              {/* Mode 2: Search by Sold Product (Name, Model, Barcode, SKU) */}
+              {step1Mode === 'product' && (
+                <div>
+                  <div style={{ display: 'flex', gap: 10, position: 'relative' }}>
+                    <div className="search-input-wrapper" style={{ flex: 1, position: 'relative' }}>
+                      <Package size={16} className="search-icon" />
+                      <input
+                        type="search"
+                        className="form-input"
+                        placeholder="Search sold product name, model, barcode, or SKU (e.g. Anker, iPhone)..."
+                        value={productSoldQuery}
+                        onChange={(e) => setProductSoldQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleProductLookup()}
+                        autoFocus
+                      />
+                      {productSoldQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setProductSoldQuery('')}
+                          style={{
+                            position: 'absolute',
+                            right: 10,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => handleProductLookup()}
+                      disabled={lookupLoading}
+                      style={{ minWidth: 140 }}
+                    >
+                      {lookupLoading ? 'Searching…' : 'Find by Product'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 6 }}>
+                    Tip: Enter the customer’s product or scan its barcode to find all past invoices containing that item.
+                  </div>
+                </div>
+              )}
+
+              {/* Mode 3: Direct Selection from Recent Sales History */}
+              {step1Mode === 'recent_sales' && (
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--navy-dark)' }}>
+                      Recent Sales History (Click any sale to select it for return)
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={loadRecentSales}
+                      disabled={recentSalesLoading}
+                      style={{ fontSize: 11.5 }}
+                    >
+                      <RefreshCw size={12} className={recentSalesLoading ? 'spin' : ''} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
+
+                  {recentSalesLoading ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      Loading recent sales history…
+                    </div>
+                  ) : recentSalesList.length === 0 ? (
+                    <div className="empty-state" style={{ padding: 24 }}>
+                      <p>No recent sales found</p>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        maxHeight: 320,
+                        overflowY: 'auto',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)',
+                      }}
+                    >
+                      <table style={{ margin: 0 }}>
+                        <thead>
+                          <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Sold Products</th>
+                            <th style={{ textAlign: 'right' }}>Total</th>
+                            <th style={{ textAlign: 'center' }}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {recentSalesList.map((res) => {
+                            const isSelected = selectedSaleResult?.sale?.sale_id === res.sale.sale_id;
+                            return (
+                              <tr
+                                key={res.sale.sale_id}
+                                style={{
+                                  background: isSelected ? 'var(--primary-light)' : undefined,
+                                }}
+                              >
+                                <td style={{ fontWeight: 700, color: 'var(--navy-dark)' }}>
+                                  {res.sale.invoice_number}
+                                </td>
+                                <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                                  {formatDate(res.sale.sale_date)}
+                                </td>
+                                <td style={{ fontWeight: 600, fontSize: 12.5 }}>
+                                  {res.sale.customer_name || 'Walk-in'}
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                    {res.items.slice(0, 3).map((item, idx) => (
+                                      <span
+                                        key={idx}
+                                        style={{
+                                          fontSize: 11,
+                                          background: 'var(--neutral-surface)',
+                                          padding: '2px 6px',
+                                          borderRadius: 'var(--radius-sm)',
+                                          border: '1px solid var(--border-subtle)',
+                                        }}
+                                      >
+                                        <strong>{item.quantity}x</strong> {item.product_name}
+                                      </span>
+                                    ))}
+                                    {res.items.length > 3 && (
+                                      <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+                                        +{res.items.length - 3} more
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>
+                                  {formatCurrency(res.sale.grand_total)}
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '3px 8px',
+                                      fontWeight: 700,
+                                      color: isSelected ? 'var(--primary)' : undefined,
+                                    }}
+                                    onClick={() => selectSale(res)}
+                                    disabled={!res.can_return}
+                                  >
+                                    {isSelected ? '✓ Selected' : 'Select for Return'}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Multiple Search Matches Dropdown */}
               {lookupResults.length > 1 && (
                 <div
                   style={{
-                    marginTop: 10,
-                    border: '1px solid var(--border-color)',
+                    marginTop: 12,
+                    border: '1.5px solid var(--primary)',
                     borderRadius: 'var(--radius-md)',
                     overflow: 'hidden',
                     background: '#FFF',
@@ -544,21 +895,32 @@ export default function Returns({ defaultTab = 'history' }) {
                 >
                   <div
                     style={{
-                      padding: '8px 12px',
-                      background: 'var(--neutral-surface)',
+                      padding: '8px 14px',
+                      background: 'var(--primary-light)',
                       fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--text-secondary)',
+                      fontWeight: 700,
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
                     }}
                   >
-                    Multiple invoices match your search. Select one:
+                    <span>{lookupResults.length} invoices match your search. Select one:</span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 11, padding: 0 }}
+                      onClick={() => setLookupResults([])}
+                    >
+                      <X size={13} /> Close
+                    </button>
                   </div>
                   {lookupResults.map((res) => (
                     <div
                       key={res.sale.sale_id}
-                      onClick={() => selectSale(res)}
+                      onClick={() => selectSale(res, productSoldQuery)}
                       style={{
-                        padding: '10px 14px',
+                        padding: '12px 16px',
                         borderTop: '1px solid var(--border-color)',
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -568,21 +930,54 @@ export default function Returns({ defaultTab = 'history' }) {
                       }}
                       className="hover-highlight"
                     >
-                      <div>
-                        <div style={{ fontWeight: 700, color: 'var(--navy-dark)' }}>
-                          {res.sale.invoice_number}
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontWeight: 800, color: 'var(--navy-dark)', fontSize: 14 }}>
+                            {res.sale.invoice_number}
+                          </span>
+                          <span className={`badge ${paymentStatusBadge(res.sale.payment_status)}`}>
+                            {res.sale.payment_status}
+                          </span>
+                          {!res.can_return && (
+                            <span className="badge badge-amber" style={{ fontSize: 10 }}>Already Returned</span>
+                          )}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                          Customer: {res.sale.customer_name} · Date: {formatDate(res.sale.sale_date)}
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                          Customer: <strong>{res.sale.customer_name}</strong> · Date: {formatDate(res.sale.sale_date)}
+                        </div>
+                        {/* Sold Products in this invoice */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
+                          {res.items.map((it, idx) => (
+                            <span
+                              key={idx}
+                              style={{
+                                fontSize: 11,
+                                padding: '2px 7px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: it.is_matched_product ? '#FEF3C7' : 'var(--neutral-surface)',
+                                border: it.is_matched_product ? '1px solid #F59E0B' : '1px solid var(--border-subtle)',
+                                color: it.is_matched_product ? '#92400E' : 'var(--navy-dark)',
+                                fontWeight: it.is_matched_product ? 700 : 500,
+                              }}
+                            >
+                              {it.quantity}x {it.product_name}
+                              {it.is_matched_product && ' ★'}
+                            </span>
+                          ))}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 15 }}>
                           {formatCurrency(res.sale.grand_total)}
                         </div>
-                        <span className={`badge ${paymentStatusBadge(res.sale.payment_status)}`}>
-                          {res.sale.payment_status}
-                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          style={{ marginTop: 6, fontSize: 11 }}
+                          disabled={!res.can_return}
+                        >
+                          Select for Return
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1793,7 +2188,7 @@ export default function Returns({ defaultTab = 'history' }) {
                     <th>Date</th>
                     <th>Original Invoice</th>
                     <th>Customer</th>
-                    <th>Returned Product</th>
+                    <th>Product Name & Exchange Details</th>
                     <th>Type</th>
                     <th>Amount / Diff</th>
                     <th>Cashier</th>
@@ -1866,13 +2261,54 @@ export default function Returns({ defaultTab = 'history' }) {
                           </td>
                           <td style={{ fontWeight: 600 }}>{ret.customer_name || 'Walk-in'}</td>
                           <td>
-                            <div style={{ fontWeight: 600 }}>{ret.product_name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                              Qty: {ret.quantity} unit{ret.quantity > 1 ? 's' : ''} · Condition: {ret.stock_action || 'restock'}
+                            <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy-dark)' }}>
+                              {ret.product_name || ret.product_id || 'Unknown Product'}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11.5,
+                                color: 'var(--text-secondary)',
+                                marginTop: 3,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <span>
+                                Qty: <strong>{ret.quantity}</strong> unit{ret.quantity > 1 ? 's' : ''}
+                              </span>
+                              <span>•</span>
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 600,
+                                  color: ret.stock_action === 'damaged' ? 'var(--danger)' : 'var(--success)',
+                                }}
+                              >
+                                {ret.stock_action === 'damaged' ? 'Damaged (Discarded)' : 'Resellable (Restocked)'}
+                              </span>
                             </div>
                             {ret.exchange_product_name && (
-                              <div style={{ fontSize: 11, color: 'var(--purple)', marginTop: 2 }}>
-                                ↳ Replaced by: {ret.exchange_product_name}
+                              <div
+                                style={{
+                                  fontSize: 11.5,
+                                  color: 'var(--purple)',
+                                  marginTop: 4,
+                                  background: '#F5F3FF',
+                                  padding: '2px 8px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <span>↳ Exchanged for:</span>
+                                <strong>{ret.exchange_product_name}</strong>
+                                {Number(ret.exchange_quantity) > 1 && (
+                                  <span>({ret.exchange_quantity} pcs)</span>
+                                )}
                               </div>
                             )}
                           </td>

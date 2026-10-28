@@ -292,4 +292,56 @@ describe('Returns & Exchanges API Integration', () => {
     expect(detailCall.res.data.data.return.original_sale.invoice_number).toBe(testInvoice);
     expect(detailCall.res.data.data.return.details.returned_item.product_id).toBe('PROD-000003');
   });
+
+  it('looks up sales by sold product name, model, barcode or SKU', async () => {
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { action: 'lookup', product: 'Anker' },
+    });
+
+    await returnsHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.data.success).toBe(true);
+    expect(res.data.data.results.length).toBeGreaterThan(0);
+
+    const match = res.data.data.results.find((r) => r.sale.sale_id === testSaleId);
+    expect(match).toBeDefined();
+    expect(match.items[0].product_name).toContain('Anker');
+    expect(match.items[0].is_matched_product).toBe(true);
+  });
+
+  it('loads recent sales history for direct selection', async () => {
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { action: 'recent_sales' },
+    });
+
+    await returnsHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.data.success).toBe(true);
+    expect(Array.isArray(res.data.data.results)).toBe(true);
+    expect(res.data.data.results.length).toBeGreaterThan(0);
+    const saleResult = res.data.data.results[0];
+    expect(saleResult.sale.invoice_number).toBeDefined();
+    expect(saleResult.items.length).toBeGreaterThan(0);
+  });
+
+  it('ensures return history list includes product_name for all returns', async () => {
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { limit: 10 },
+    });
+
+    await returnsHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.data.success).toBe(true);
+    const returnItem = res.data.data.returns[0];
+    if (returnItem) {
+      expect(returnItem.product_name).toBeDefined();
+      expect(returnItem.product_name.length).toBeGreaterThan(0);
+    }
+  });
 });

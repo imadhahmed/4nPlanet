@@ -22,42 +22,85 @@ export default asyncHandler(async (req, res) => {
       limit = '50', offset = '0',
     } = req.query || {};
 
-    // ── Invoice Lookup Helper for Cashier ──
-    if (action === 'lookup' || (invoice && !return_type && !status && !from && !to)) {
+    // ── Invoice & Sales Lookup Helper for Cashier ──
+    if (action === 'lookup' || action === 'recent_sales' || (invoice && !return_type && !status && !from && !to)) {
       const searchTerm = (invoice || q || '').trim().toLowerCase();
-      if (!searchTerm) {
-        return ok(res, { results: [] });
-      }
+      const productQuery = (req.query.product || '').trim().toLowerCase();
 
       const allSales = await readSheet('Sales');
       const allSaleItems = await readSheet('Sale_Items');
       const allReturns = await readSheet('Returns');
 
-      // Find matching sales (by invoice number, customer name, or sale_id)
-      const matches = allSales.filter((s) => {
-        const inv = (s.invoice_number || '').toLowerCase();
-        const cname = (s.customer_name || '').toLowerCase();
-        const sid = (s.sale_id || '').toLowerCase();
-        return inv === searchTerm || inv.includes(searchTerm) || cname.includes(searchTerm) || sid === searchTerm;
-      });
+      let matches = [];
 
-      // If an exact match by invoice number exists, place it first
-      matches.sort((a, b) => {
-        const aExact = (a.invoice_number || '').toLowerCase() === searchTerm;
-        const bExact = (b.invoice_number || '').toLowerCase() === searchTerm;
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
-        return b.created_at.localeCompare(a.created_at);
-      });
+      // If no query is provided, return recent completed sales for sales history selection
+      if (!searchTerm && !productQuery) {
+        matches = allSales
+          .filter((s) => s.sale_status !== 'cancelled')
+          .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+          .slice(0, 20);
+      } else {
+        // Collect sale IDs where sale items match product name, model, SKU, barcode, or ID
+        const matchingSaleIdsFromItems = new Set();
+        const effectiveProductTerm = productQuery || searchTerm;
 
-      // Enrich top matches (limit to 10 for performance)
-      const enrichedResults = matches.slice(0, 10).map((sale) => {
+        for (const item of allSaleItems) {
+          const pName = (item.product_name || '').toLowerCase();
+          const pModel = (item.model || '').toLowerCase();
+          const pSku = (item.sku || '').toLowerCase();
+          const pBarcode = (item.barcode || '').toLowerCase();
+          const pid = (item.product_id || '').toLowerCase();
+
+          if (
+            effectiveProductTerm &&
+            (pName.includes(effectiveProductTerm) ||
+              pModel.includes(effectiveProductTerm) ||
+              pSku.includes(effectiveProductTerm) ||
+              pBarcode.includes(effectiveProductTerm) ||
+              pid === effectiveProductTerm)
+          ) {
+            matchingSaleIdsFromItems.add(item.sale_id);
+          }
+        }
+
+        matches = allSales.filter((s) => {
+          const inv = (s.invoice_number || '').toLowerCase();
+          const cname = (s.customer_name || '').toLowerCase();
+          const cphone = (s.customer_phone || '').toLowerCase();
+          const sid = (s.sale_id || '').toLowerCase();
+
+          const matchesInvoiceOrCustomer =
+            searchTerm &&
+            (inv === searchTerm ||
+              inv.includes(searchTerm) ||
+              cname.includes(searchTerm) ||
+              cphone.includes(searchTerm) ||
+              sid === searchTerm);
+
+          const matchesProductItems = matchingSaleIdsFromItems.has(s.sale_id);
+
+          return matchesInvoiceOrCustomer || matchesProductItems;
+        });
+
+        // Priority sort: exact invoice number first, then date
+        matches.sort((a, b) => {
+          const aExact = searchTerm && (a.invoice_number || '').toLowerCase() === searchTerm;
+          const bExact = searchTerm && (b.invoice_number || '').toLowerCase() === searchTerm;
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+          return (b.created_at || '').localeCompare(a.created_at || '');
+        });
+      }
+
+      // Enrich top matches (limit to 25 for fast response)
+      const effectiveProductTerm = productQuery || searchTerm;
+      const enrichedResults = matches.slice(0, 25).map((sale) => {
         const saleItems = allSaleItems.filter((i) => i.sale_id === sale.sale_id);
         const saleReturns = allReturns.filter(
           (r) => r.original_sale_id === sale.sale_id || r.sale_id === sale.sale_id
         );
 
-        // Calculate return eligibility for each item
+        // Calculate return eligibility for each item and flag matched products
         const itemsWithEligibility = saleItems.map((item) => {
           const itemReturns = saleReturns.filter(
             (r) => r.product_id === item.product_id || (r.item_id && r.item_id === item.item_id)
@@ -68,11 +111,25 @@ export default asyncHandler(async (req, res) => {
           );
           const eligibleQty = Math.max(0, (Number(item.quantity) || 1) - alreadyReturnedQty);
 
+          const pName = (item.product_name || '').toLowerCase();
+          const pModel = (item.model || '').toLowerCase();
+          const pSku = (item.sku || '').toLowerCase();
+          const pBarcode = (item.barcode || '').toLowerCase();
+          const pid = (item.product_id || '').toLowerCase();
+          const isMatched = effectiveProductTerm
+            ? pName.includes(effectiveProductTerm) ||
+              pModel.includes(effectiveProductTerm) ||
+              pSku.includes(effectiveProductTerm) ||
+              pBarcode.includes(effectiveProductTerm) ||
+              pid === effectiveProductTerm
+            : false;
+
           return {
             ...item,
             already_returned_qty: alreadyReturnedQty,
             eligible_quantity: eligibleQty,
             is_fully_returned: eligibleQty === 0,
+            is_matched_product: isMatched,
           };
         });
 
@@ -92,7 +149,33 @@ export default asyncHandler(async (req, res) => {
 
     // ── Standard List of Return Records ──
     const allReturns = await readSheet('Returns');
-    let filtered = allReturns;
+    const allProducts = await readSheet('Products');
+    const productMap = new Map(allProducts.map((p) => [p.product_id, p]));
+
+    // Enrich all return records with product_name and exchange_product_name if missing
+    let filtered = allReturns.map((r) => {
+      let prodName = r.product_name;
+      let exchName = r.exchange_product_name;
+
+      if (!prodName && r.items_json) {
+        try {
+          const parsed = JSON.parse(r.items_json);
+          prodName = parsed.returned_item?.product_name || parsed.product_name;
+        } catch {}
+      }
+      if (!prodName && r.product_id) {
+        prodName = productMap.get(r.product_id)?.name;
+      }
+      if (!exchName && r.exchange_product_id) {
+        exchName = productMap.get(r.exchange_product_id)?.name;
+      }
+
+      return {
+        ...r,
+        product_name: prodName || r.product_id || 'Unknown Product',
+        exchange_product_name: exchName || (r.exchange_product_id ? r.exchange_product_id : ''),
+      };
+    });
 
     if (q) {
       const term = q.toLowerCase();
