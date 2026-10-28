@@ -1271,15 +1271,48 @@ export default function Returns({ defaultTab = 'history' }) {
 
                     {/* Search Catalog */}
                     <div style={{ marginBottom: 12 }}>
-                      <div className="search-input-wrapper">
+                      <div className="search-input-wrapper" style={{ position: 'relative' }}>
                         <Search size={15} className="search-icon" />
                         <input
                           type="search"
                           className="form-input"
-                          placeholder="Search replacement by name, model, barcode..."
+                          style={{ paddingRight: productSearch ? 32 : 12 }}
+                          placeholder="Search replacement by name, model, barcode (Press Enter to pick)..."
                           value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const first = filteredCatalog.find((p) => Number(p.stock_quantity) > 0);
+                              if (first) {
+                                setSelectedExchangeProduct(first);
+                                setExchangeQuantity(1);
+                              }
+                            }
+                          }}
                         />
+                        {productSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setProductSearch('')}
+                            style={{
+                              position: 'absolute',
+                              right: 10,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: 2,
+                            }}
+                            title="Clear search"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
