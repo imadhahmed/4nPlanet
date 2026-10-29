@@ -273,7 +273,17 @@ export default asyncHandler(async (req, res) => {
 
     // ── Load Products & Serials ──
     const products = await readSheet('Products');
-    const returnedProduct = products.find((p) => p.product_id === saleItem.product_id);
+    let returnedProduct = products.find((p) => p.product_id === saleItem.product_id);
+    if (!returnedProduct && (saleItem.product_id === 'CUSTOM' || String(saleItem.product_id).startsWith('CUSTOM-') || saleItem.product_id === 'MANUAL')) {
+      returnedProduct = {
+        product_id: saleItem.product_id,
+        name: saleItem.product_name || 'Custom Product',
+        stock_quantity: 0,
+        retail_price: saleItem.unit_price,
+        purchase_cost: 0,
+        is_custom: true,
+      };
+    }
     if (!returnedProduct) {
       return fail(res, 'Returned product record not found in catalog', 404);
     }
@@ -367,10 +377,12 @@ export default asyncHandler(async (req, res) => {
         newStock = curStock; // + returnQty - returnQty = net zero
       }
 
-      await updateRow('Products', 'product_id', returnedProduct.product_id, {
-        stock_quantity: newStock,
-        updated_at: now,
-      });
+      if (!returnedProduct.is_custom) {
+        await updateRow('Products', 'product_id', returnedProduct.product_id, {
+          stock_quantity: newStock,
+          updated_at: now,
+        });
+      }
 
       // Stock movement: return_in
       const movementInId = await generateId('MOV', 'Stock_Movements', 'movement_id');
@@ -398,10 +410,12 @@ export default asyncHandler(async (req, res) => {
       if (data.return_type === 'exchange_same') {
         // Deduct the replacement given to customer
         newStock = Math.max(0, curStock - returnQty);
-        await updateRow('Products', 'product_id', returnedProduct.product_id, {
-          stock_quantity: newStock,
-          updated_at: now,
-        });
+        if (!returnedProduct.is_custom) {
+          await updateRow('Products', 'product_id', returnedProduct.product_id, {
+            stock_quantity: newStock,
+            updated_at: now,
+          });
+        }
       }
 
       const damageMovId = await generateId('MOV', 'Stock_Movements', 'movement_id');

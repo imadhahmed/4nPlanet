@@ -189,6 +189,7 @@ export const CustomerSchema = z.object({
 // ─────────────────────────────────────────────
 const PurchaseItemSchema = z.object({
   product_id: z.string().min(1),
+
   serial_id: z.string().optional().default(''),
   imei1: z.string().optional().default(''),
   imei2: z.string().optional().default(''),
@@ -214,7 +215,12 @@ export const CreatePurchaseSchema = z.object({
 // SALES
 // ─────────────────────────────────────────────
 const SaleItemSchema = z.object({
+  product_name: z.string().optional().default(''),
+  model: z.string().optional().default(''),
+  brand: z.string().optional().default(''),
+  is_custom: z.boolean().optional().default(false),
   product_id: z.string().min(1),
+
   serial_id: z.string().optional().default(''),
   imei1: z.string().optional().default(''),
   quantity: z.number().int().min(1),

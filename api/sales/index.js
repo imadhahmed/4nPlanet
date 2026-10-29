@@ -77,6 +77,38 @@ export default asyncHandler(async (req, res) => {
     const enrichedItems = [];
 
     for (const item of data.items) {
+      const isCustomItem =
+        Boolean(item.is_custom) ||
+        item.product_id === 'CUSTOM' ||
+        String(item.product_id).startsWith('CUSTOM-') ||
+        item.product_id === 'MANUAL';
+
+      if (isCustomItem) {
+        const customProductName = (item.product_name || 'Manual Product').trim();
+        const itemDiscount = Number(item.discount) || 0;
+        const lineTotal = (item.unit_price * item.quantity) - itemDiscount;
+        subtotal += lineTotal;
+
+        enrichedItems.push({
+          isCustom: true,
+          product: {
+            product_id: item.product_id || 'CUSTOM',
+            name: customProductName,
+            model: item.model || 'Manual Entry',
+            brand_name: item.brand || 'Custom',
+            purchase_cost: 0,
+            warranty_duration: '',
+            product_type: 'custom',
+          },
+          serialRecord: null,
+          ...item,
+          product_name: customProductName,
+          lineTotal,
+          itemDiscount,
+        });
+        continue;
+      }
+
       const product = products.find((p) => p.product_id === item.product_id);
       if (!product) return fail(res, `Product not found: ${item.product_id}`, 404);
       if (product.is_active === 'false') return fail(res, `Product is inactive: ${product.name}`, 400);
@@ -154,7 +186,7 @@ export default asyncHandler(async (req, res) => {
       item_id: `${sale_id}-ITEM-${String(idx + 1).padStart(3, '0')}`,
       sale_id,
       product_id: item.product.product_id,
-      product_name: item.product.name,
+      product_name: item.product_name || item.product.name,
       model: item.product.model,
       brand: item.product.brand_name,
       serial_id: item.serialRecord?.serial_id || '',
@@ -174,6 +206,7 @@ export default asyncHandler(async (req, res) => {
 
     // ── Update inventory ────────────────────────
     for (const item of enrichedItems) {
+      if (item.isCustom) continue;
       const currentStock = Number(item.product.stock_quantity) || 0;
       const newQty = Math.max(0, currentStock - item.quantity);
       await updateRow('Products', 'product_id', item.product.product_id, {
@@ -186,7 +219,7 @@ export default asyncHandler(async (req, res) => {
       await appendRow('Stock_Movements', {
         movement_id,
         product_id: item.product.product_id,
-        product_name: item.product.name,
+        product_name: item.product_name || item.product.name,
         serial_id: '',
         movement_type: 'sale_out',
         quantity_change: -item.quantity,
@@ -211,7 +244,7 @@ export default asyncHandler(async (req, res) => {
         await appendRow('Warranties', {
           warranty_id,
           product_id: item.product.product_id,
-          product_name: item.product.name,
+          product_name: item.product_name || item.product.name,
           serial_id: item.serialRecord?.serial_id || '',
           imei1: item.serialRecord?.imei1 || '',
           customer_id: data.customer_id || 'WALK_IN',

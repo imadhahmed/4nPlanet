@@ -76,6 +76,35 @@ describe('Validation Schemas', () => {
     expect(parsed.success).toBe(true);
   });
 
+  it('validates a sale payload containing manual / custom product items', () => {
+    const sale = {
+      customer_id: 'WALK_IN',
+      sale_date: '2026-10-29T10:00:00Z',
+      items: [
+        {
+          product_id: 'CUSTOM-1730000000',
+          product_name: 'Custom Phone Case + UV Print',
+          model: 'iPhone 15 Case',
+          brand: 'Custom',
+          is_custom: true,
+          quantity: 1,
+          unit_price: 3500,
+          discount: 500,
+        },
+      ],
+      amount_paid: 3000,
+      payment_methods: [
+        {
+          method: 'cash',
+          amount: 3000,
+        },
+      ],
+      idempotency_key: 'test-custom-sale-1',
+    };
+    const parsed = CreateSaleSchema.safeParse(sale);
+    expect(parsed.success).toBe(true);
+  });
+
   it('validates expense payload', () => {
     const expense = {
       title: 'Shop Electricity Oct 2026',

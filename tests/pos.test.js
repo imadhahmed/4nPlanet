@@ -55,4 +55,29 @@ describe('Point of Sale (POS) Cart Calculations', () => {
     const outstanding2 = Math.max(0, grandTotal - paidLess);
     expect(outstanding2).toBe(25000);
   });
+
+  it('correctly handles manual / custom product entries not in the catalog', () => {
+    const manualItem = {
+      product_id: 'CUSTOM-1730000000',
+      name: 'Custom Tempered Glass + Fitting Labor',
+      unit_price: 2500,
+      quantity: 2,
+      discount: 200,
+      is_custom: true,
+    };
+
+    const lineTotal = manualItem.unit_price * manualItem.quantity - manualItem.discount;
+    expect(lineTotal).toBe(4800);
+
+    const cart = [
+      { unit_price: 6500, quantity: 1, discount: 0, is_custom: false },
+      manualItem,
+    ];
+
+    const subtotal = cart.reduce(
+      (sum, item) => sum + (item.unit_price * item.quantity - item.discount),
+      0
+    );
+    expect(subtotal).toBe(11300);
+  });
 });

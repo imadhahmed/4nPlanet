@@ -64,6 +64,16 @@ export default function POS() {
   // ── Detailed Full Cart View Modal State ──
   const [fullCartModalOpen, setFullCartModalOpen] = useState(false);
 
+  // ── Manual / Custom Product Modal State ──
+  const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualPrice, setManualPrice] = useState('');
+  const [manualQty, setManualQty] = useState(1);
+  const [manualDiscount, setManualDiscount] = useState(0);
+  const [manualNote, setManualNote] = useState('');
+  const [editingManualIndex, setEditingManualIndex] = useState(null);
+  const manualNameInputRef = useRef(null);
+
   // Load products and categories on mount
   useEffect(() => {
     productsApi.list({ status: 'active' }).then((res) => {
@@ -163,6 +173,103 @@ export default function POS() {
     return matchesSearch && matchesCategory;
   });
 
+  // ── Manual / Custom Product Entry Actions ──
+  const openManualItemModal = (initialName = '') => {
+    setEditingManualIndex(null);
+    setManualName(typeof initialName === 'string' ? initialName : '');
+    setManualPrice('');
+    setManualQty(1);
+    setManualDiscount(0);
+    setManualNote('');
+    setManualModalOpen(true);
+    setTimeout(() => {
+      manualNameInputRef.current?.focus();
+    }, 60);
+  };
+
+  const openEditManualItemModal = (idx) => {
+    const item = cartItems[idx];
+    setEditingManualIndex(idx);
+    setManualName(item.name || '');
+    setManualPrice(item.unit_price ?? '');
+    setManualQty(item.quantity || 1);
+    setManualDiscount(item.discount || 0);
+    setManualNote(item.model === 'Manual Product' ? '' : (item.model || ''));
+    setManualModalOpen(true);
+    setTimeout(() => {
+      manualNameInputRef.current?.focus();
+      manualNameInputRef.current?.select();
+    }, 60);
+  };
+
+  const handleAddManualItem = (e) => {
+    if (e) e.preventDefault();
+    const name = manualName.trim();
+    if (!name) {
+      toast.error('Please enter the product name');
+      return;
+    }
+    const price = Number(manualPrice);
+    if (manualPrice === '' || isNaN(price) || price < 0) {
+      toast.error('Please enter a valid unit price (0 or greater)');
+      return;
+    }
+    const qty = parseInt(manualQty, 10);
+    if (!qty || qty < 1) {
+      toast.error('Quantity must be at least 1');
+      return;
+    }
+    const disc = Number(manualDiscount) || 0;
+    if (disc < 0) {
+      toast.error('Discount cannot be negative');
+      return;
+    }
+
+    if (editingManualIndex !== null && editingManualIndex >= 0) {
+      // Editing existing manual item
+      setCartItems((prev) =>
+        prev.map((item, i) =>
+          i === editingManualIndex
+            ? {
+                ...item,
+                name,
+                model: manualNote.trim() || 'Manual Product',
+                unit_price: price,
+                quantity: qty,
+                discount: disc,
+              }
+            : item
+        )
+      );
+      toast.success(`Updated "${name}" in cart`);
+    } else {
+      // Adding new manual item
+      const customId = `CUSTOM-${Date.now()}`;
+      const newItem = {
+        product_id: customId,
+        name,
+        model: manualNote.trim() || 'Manual Product',
+        brand: 'Custom',
+        unit_price: price,
+        purchase_cost: 0,
+        quantity: qty,
+        discount: disc,
+        max_stock: 999999,
+        warranty_duration: '',
+        is_phone: false,
+        is_custom: true,
+        serial_id: '',
+        imei1: '',
+      };
+      setCartItems((prev) => [...prev, newItem]);
+      toast.success(`Added "${name}" to cart (Qty: ${qty})`);
+    }
+
+    setManualModalOpen(false);
+    setEditingManualIndex(null);
+    setCartViewTab('items');
+  };
+
   // ── Open Quantity Modal on Product Card Click ──
   const handleProductCardClick = (product) => {
     const stock = Number(product.stock_quantity) || 0;
@@ -182,6 +289,10 @@ export default function POS() {
   // ── Open Modal to Edit Existing Cart Item ──
   const handleEditCartItem = (idx) => {
     const item = cartItems[idx];
+    if (item.is_custom) {
+      openEditManualItemModal(idx);
+      return;
+    }
     const product = productList.find((p) => p.product_id === item.product_id) || {
       product_id: item.product_id,
       name: item.name,
@@ -300,7 +411,7 @@ export default function POS() {
     const item = cartItems[idx];
     const newQty = item.quantity + delta;
     if (newQty < 1) return;
-    if (newQty > item.max_stock) {
+    if (!item.is_custom && newQty > item.max_stock) {
       toast.error(`Cannot exceed available stock (${item.max_stock})`);
       return;
     }
@@ -336,6 +447,10 @@ export default function POS() {
         sale_date: new Date().toISOString(),
         items: cartItems.map((i) => ({
           product_id: i.product_id,
+          product_name: i.name,
+          model: i.model || '',
+          brand: i.brand || '',
+          is_custom: Boolean(i.is_custom),
           serial_id: i.serial_id || '',
           imei1: i.imei1 || '',
           quantity: i.quantity,
@@ -376,6 +491,10 @@ export default function POS() {
         sale_date: new Date().toISOString(),
         items: cartItems.map((i) => ({
           product_id: i.product_id,
+          product_name: i.name,
+          model: i.model || '',
+          brand: i.brand || '',
+          is_custom: Boolean(i.is_custom),
           serial_id: i.serial_id || '',
           imei1: i.imei1 || '',
           quantity: i.quantity,
@@ -577,7 +696,19 @@ export default function POS() {
               >
                 {filteredProducts.length === 0 ? (
                   <div style={{ padding: '16px', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
-                    No products matching "<strong>{productSearch}</strong>"
+                    <div>No products matching "<strong>{productSearch}</strong>"</div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: 8, fontSize: 12 }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setShowSearchDropdown(false);
+                        openManualItemModal(productSearch);
+                      }}
+                    >
+                      <Plus size={13} /> Sell "{productSearch}" as Manual Product
+                    </button>
                   </div>
                 ) : (
                   <>
@@ -655,11 +786,56 @@ export default function POS() {
                         </div>
                       );
                     })}
+                    <div
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setShowSearchDropdown(false);
+                        openManualItemModal(productSearch);
+                      }}
+                      style={{
+                        padding: '9px 14px',
+                        borderTop: '1px solid var(--border-color)',
+                        background: 'var(--neutral-surface)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 12,
+                        color: 'var(--primary)',
+                        fontWeight: 700,
+                      }}
+                      className="hover-highlight"
+                    >
+                      <Plus size={13} />
+                      <span>Sell custom / manual product not in list</span>
+                    </div>
                   </>
                 )}
               </div>
             )}
           </div>
+
+          {/* Add Manual / Custom Product Button */}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => openManualItemModal(productSearch)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              whiteSpace: 'nowrap',
+              height: 40,
+              padding: '0 14px',
+              fontSize: 12.5,
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+            title="Sell a product or service not in the product list"
+          >
+            <Plus size={15} />
+            <span>Manual Product</span>
+          </button>
         </div>
 
         {/* Category Pills */}
@@ -744,7 +920,15 @@ export default function POS() {
               <div className="empty-state">
                 <div className="empty-state-icon"><Search size={22} /></div>
                 <h3>No products found</h3>
-                <p>Try a different keyword or category filter</p>
+                <p>Can't find the product in the catalog? You can sell it as a manual entry.</p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ marginTop: 10 }}
+                  onClick={() => openManualItemModal(productSearch)}
+                >
+                  <Plus size={14} /> Sell as Manual Product
+                </button>
               </div>
             </div>
           )}
@@ -964,14 +1148,32 @@ export default function POS() {
                               fontWeight: 700,
                               color: 'var(--navy-dark)',
                               lineHeight: 1.3,
+                              display: 'flex',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: 6,
                             }}
                             title={item.name}
                           >
-                            {item.name}
+                            <span>{item.name}</span>
+                            {item.is_custom && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  background: '#EDE9FE',
+                                  color: '#6D28D9',
+                                  padding: '1px 6px',
+                                  borderRadius: 10,
+                                }}
+                              >
+                                Manual Product
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
-                            {item.model || item.brand}
-                            {item.max_stock && (
+                            {item.is_custom ? (item.model || 'Manual Entry') : (item.model || item.brand)}
+                            {!item.is_custom && item.max_stock && (
                               <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>
                                 (Avail: {item.max_stock})
                               </span>
@@ -1824,6 +2026,202 @@ export default function POS() {
                 Proceed to Checkout
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ── Manual / Custom Product Entry Modal ── */}
+      {manualModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 110 }}>
+          <div
+            className="modal"
+            style={{
+              maxWidth: 480,
+              width: '100%',
+              padding: 0,
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-xl)',
+            }}
+          >
+            <div
+              className="modal-header"
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                background: 'var(--neutral-surface)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 className="modal-title" style={{ fontSize: 16, fontWeight: 800 }}>
+                  {editingManualIndex !== null ? 'Edit Manual Product' : 'Add Manual Product'}
+                </h3>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  Sell a product, accessory, or service not in the product list
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => setManualModalOpen(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddManualItem}>
+              <div className="modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Product Name */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy-dark)', display: 'block', marginBottom: 6 }}>
+                    Product / Item Name <span style={{ color: 'var(--danger)' }}>*</span>
+                  </label>
+                  <input
+                    ref={manualNameInputRef}
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Generic Case, Screen Guard, Repair Service..."
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                    required
+                    style={{ fontSize: 14 }}
+                  />
+                </div>
+
+                {/* Price and Quantity row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy-dark)', display: 'block', marginBottom: 6 }}>
+                      Unit Price (LKR) <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="0.00"
+                      min="0"
+                      step="any"
+                      value={manualPrice}
+                      onChange={(e) => setManualPrice(e.target.value)}
+                      required
+                      style={{ fontSize: 15, fontWeight: 700 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy-dark)', display: 'block', marginBottom: 6 }}>
+                      Quantity <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-icon"
+                        style={{ height: 38, width: 38 }}
+                        disabled={manualQty <= 1}
+                        onClick={() => setManualQty((q) => Math.max(1, q - 1))}
+                      >
+                        <Minus size={13} />
+                      </button>
+                      <input
+                        type="number"
+                        className="form-input"
+                        min="1"
+                        value={manualQty}
+                        onChange={(e) => setManualQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, height: 38 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-icon"
+                        style={{ height: 38, width: 38 }}
+                        onClick={() => setManualQty((q) => q + 1)}
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Discount and Note row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy-dark)', display: 'block', marginBottom: 6 }}>
+                      Item Discount (LKR)
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="0.00"
+                      min="0"
+                      value={manualDiscount || ''}
+                      onChange={(e) => setManualDiscount(Number(e.target.value) || 0)}
+                      style={{ fontSize: 14 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy-dark)', display: 'block', marginBottom: 6 }}>
+                      Model / Note (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Color / Warranty note"
+                      value={manualNote}
+                      onChange={(e) => setManualNote(e.target.value)}
+                      style={{ fontSize: 14 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Subtotal Preview Banner */}
+                <div
+                  style={{
+                    background: 'var(--neutral-surface)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                    Item Total ({manualQty} unit{manualQty > 1 ? 's' : ''}):
+                  </span>
+                  <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--primary)' }}>
+                    {formatCurrency(Math.max(0, (Number(manualPrice) || 0) * (Number(manualQty) || 1) - (Number(manualDiscount) || 0)))}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className="modal-footer"
+                style={{
+                  padding: '12px 20px',
+                  borderTop: '1px solid var(--border-color)',
+                  background: 'var(--neutral-surface)',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setManualModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!manualName.trim() || manualPrice === '' || Number(manualPrice) < 0}
+                >
+                  <Plus size={14} /> {editingManualIndex !== null ? 'Update Item' : 'Add to Cart'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
