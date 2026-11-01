@@ -3,7 +3,7 @@
 // GET /api/sales — list sales
 
 import {
-  readSheet, appendRow, updateRow, batchAppend, findOne, generateId, findMany
+  readSheet, appendRow, updateRow, batchAppend, findOne, generateId
 } from '../lib/sheets.js';
 import { requireAuth } from '../lib/auth.js';
 import { ok, fail, asyncHandler } from '../lib/response.js';
@@ -63,15 +63,54 @@ export default asyncHandler(async (req, res) => {
 
     // ── Resolve customer ──────────────────────
     let customer = null;
-    if (data.customer_id && data.customer_id !== 'WALK_IN') {
-      customer = await findOne('Customers', 'customer_id', data.customer_id);
+    const now = new Date().toISOString();
+    let customerId = data.customer_id || 'WALK_IN';
+    let customerName = data.customer_name?.trim() || '';
+
+    if (customerId && customerId !== 'WALK_IN' && customerId !== 'NEW') {
+      customer = await findOne('Customers', 'customer_id', customerId);
       if (!customer) return fail(res, 'Customer not found', 404);
+      customerName = customer.name;
+    } else if (customerId === 'NEW' || (customerId === 'WALK_IN' && customerName)) {
+      const existingCustomers = await readSheet('Customers');
+      const phoneInput = data.customer_phone?.trim();
+      const existing = existingCustomers.find((c) =>
+        c.is_active !== 'false' && (
+          (phoneInput && c.phone && c.phone === phoneInput) ||
+          (customerName && c.name?.toLowerCase() === customerName.toLowerCase())
+        )
+      );
+
+      if (existing) {
+        customer = existing;
+        customerId = existing.customer_id;
+        customerName = existing.name;
+      } else if (customerName) {
+        customerId = await generateId('CUST', 'Customers', 'customer_id');
+        customer = {
+          customer_id: customerId,
+          name: customerName,
+          phone: phoneInput || '',
+          email: '',
+          address: '',
+          customer_type: 'registered',
+          notes: 'Auto-registered from POS sale',
+          total_purchases: 0,
+          total_payments: 0,
+          outstanding_balance: 0,
+          is_active: true,
+          created_at: now,
+          updated_at: now,
+        };
+        await appendRow('Customers', customer);
+      }
     }
-    const customerName = customer?.name || 'Walk-in Customer';
+    if (!customerName) {
+      customerName = 'Walk-in Customer';
+    }
 
     // ── Load & validate products ──────────────
     const products = await readSheet('Products');
-    const serials = await readSheet('Serials');
 
     let subtotal = 0;
     const enrichedItems = [];
@@ -150,8 +189,6 @@ export default asyncHandler(async (req, res) => {
       return fail(res, 'Payment methods total does not match amount paid', 400);
     }
 
-    const now = new Date().toISOString();
-
     // ── Generate IDs ───────────────────────────
     const sale_id = await generateId('SALE', 'Sales', 'sale_id');
     const salesCount = (await readSheet('Sales')).length;
@@ -161,7 +198,7 @@ export default asyncHandler(async (req, res) => {
     const saleRecord = {
       sale_id,
       invoice_number,
-      customer_id: data.customer_id || 'WALK_IN',
+      customer_id: customerId,
       customer_name: customerName,
       cashier_id: user.user_id,
       cashier_name: user.name,
@@ -247,7 +284,7 @@ export default asyncHandler(async (req, res) => {
           product_name: item.product_name || item.product.name,
           serial_id: item.serialRecord?.serial_id || '',
           imei1: item.serialRecord?.imei1 || '',
-          customer_id: data.customer_id || 'WALK_IN',
+          customer_id: customerId,
           customer_name: customerName,
           sale_id,
           invoice_number,
@@ -272,7 +309,7 @@ export default asyncHandler(async (req, res) => {
         payment_id,
         payment_type: 'customer_receipt',
         related_id: sale_id,
-        party_id: data.customer_id || 'WALK_IN',
+        party_id: customerId,
         party_name: customerName,
         party_type: 'customer',
         amount: pm.amount,

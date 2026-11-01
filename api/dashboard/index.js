@@ -22,7 +22,7 @@ export default asyncHandler(async (req, res) => {
   requireAuth(req);
 
   // Load all needed sheets in parallel
-  const [sales, saleItems, purchases, purchaseItems, expenses, products, serials, customers, suppliers, payments, repairs] = await Promise.all([
+  const [sales, saleItems, purchases, purchaseItems, expenses, products, serials, customers, suppliers, payments, repairs, returns] = await Promise.all([
     readSheet('Sales'),
     readSheet('Sale_Items'),
     readSheet('Purchases'),
@@ -34,29 +34,63 @@ export default asyncHandler(async (req, res) => {
     readSheet('Suppliers'),
     readSheet('Payments'),
     readSheet('Repair_Jobs'),
+    readSheet('Returns').catch(() => []),
   ]);
+
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 
   // ─────────────────────────────────────────────
-  // TODAY'S SALES
+  // TODAY'S SALES & GROSS PROFIT
   // ─────────────────────────────────────────────
   const todaySales = sales.filter((s) =>
     s.sale_status === 'completed' &&
     toColomboDayString(s.sale_date) === today
   );
 
-  const todayRevenue = todaySales.reduce((s, sale) => s + Number(sale.grand_total || 0), 0);
+  const todayReturns = (returns || []).filter((r) =>
+    r.status !== 'rejected' &&
+    toColomboDayString(r.return_date || r.created_at) === today
+  );
+  const todayRefunds = todayReturns.reduce((s, r) => s + Number(r.refund_amount || 0), 0);
+
+  const rawTodayRevenue = todaySales.reduce((s, sale) => s + Number(sale.grand_total || 0), 0);
+  const todayRevenue = Math.max(0, rawTodayRevenue - todayRefunds);
   const todayPaid = todaySales.reduce((s, sale) => s + Number(sale.amount_paid || 0), 0);
 
-  // Gross profit: revenue - cost of goods sold
+  // Accurate Gross profit: revenue - cost of goods sold - invoice discounts - refunds
   const todaySaleIds = new Set(todaySales.map((s) => s.sale_id));
   const todayItems = saleItems.filter((i) => todaySaleIds.has(i.sale_id));
-  const todayGrossProfit = todayItems.reduce((sum, i) => {
+  const todayItemProfit = todayItems.reduce((sum, i) => {
     const revenue = Number(i.total_price || 0);
-    const cost = Number(i.purchase_cost || 0) * Number(i.quantity || 1);
+    const unitCost = Number(i.purchase_cost) || Number(productMap[i.product_id]?.purchase_cost) || 0;
+    const cost = unitCost * Number(i.quantity || 1);
     return sum + (revenue - cost);
   }, 0);
+
+  const todayDiscounts = todaySales.reduce((s, sale) => s + Number(sale.discount_amount || 0), 0);
+  const todayGrossProfit = Math.max(0, todayItemProfit - todayDiscounts - todayRefunds);
+
+  const todayProfitMargin = todayRevenue > 0
+    ? Number(((todayGrossProfit / todayRevenue) * 100).toFixed(1))
+    : 0;
+
+  // Month-to-date metrics
+  const thisMonthStr = today.substring(0, 7);
+  const monthSales = sales.filter((s) =>
+    s.sale_status === 'completed' &&
+    (toColomboDayString(s.sale_date) || '').startsWith(thisMonthStr)
+  );
+  const monthRevenue = monthSales.reduce((s, sale) => s + Number(sale.grand_total || 0), 0);
+  const monthSaleIds = new Set(monthSales.map((s) => s.sale_id));
+  const monthItems = saleItems.filter((i) => monthSaleIds.has(i.sale_id));
+  const monthItemProfit = monthItems.reduce((sum, i) => {
+    const rev = Number(i.total_price || 0);
+    const unitCost = Number(i.purchase_cost) || Number(productMap[i.product_id]?.purchase_cost) || 0;
+    return sum + (rev - unitCost * Number(i.quantity || 1));
+  }, 0);
+  const monthDiscounts = monthSales.reduce((s, sale) => s + Number(sale.discount_amount || 0), 0);
+  const monthGrossProfit = Math.max(0, monthItemProfit - monthDiscounts);
 
   // ─────────────────────────────────────────────
   // TODAY'S EXPENSES
@@ -86,8 +120,11 @@ export default asyncHandler(async (req, res) => {
     acc.totalRetailValue += retail * qty;
     acc.totalAvailableUnits += qty;
 
-    if (qty === 0) acc.outOfStock++;
-    else if (qty <= minLevel) acc.lowStock++;
+    if (qty === 0) {
+      acc.outOfStock++;
+    } else if (minLevel > 0 && qty <= minLevel) {
+      acc.lowStock++;
+    }
 
     return acc;
   }, {
@@ -205,16 +242,17 @@ export default asyncHandler(async (req, res) => {
     .slice(0, 5);
 
   // ─────────────────────────────────────────────
-  // LOW STOCK ALERTS
+  // LOW STOCK ALERTS (Includes Out of Stock & Below Min Level)
   // ─────────────────────────────────────────────
   const lowStockAlerts = activeProducts
     .map((p) => {
       const qty = p.is_serialized === 'true'
         ? serials.filter((s) => s.product_id === p.product_id && s.status === 'available').length
         : Number(p.stock_quantity) || 0;
-      return { ...p, current_stock: qty };
+      const minLevel = Number(p.min_stock_level) || 0;
+      return { ...p, current_stock: qty, min_stock_level: minLevel };
     })
-    .filter((p) => p.current_stock <= Number(p.min_stock_level) && Number(p.min_stock_level) > 0)
+    .filter((p) => p.current_stock === 0 || (p.min_stock_level > 0 && p.current_stock <= p.min_stock_level))
     .sort((a, b) => a.current_stock - b.current_stock)
     .slice(0, 10);
 
@@ -235,6 +273,9 @@ export default asyncHandler(async (req, res) => {
       todayGrossProfit,
       todayExpenses,
       todayNetProfit,
+      todayProfitMargin,
+      monthRevenue,
+      monthGrossProfit,
       todaySalesCount: todaySales.length,
       ...inventoryStats,
       customerOutstanding,

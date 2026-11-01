@@ -21,6 +21,7 @@ const PurchaseList = lazy(() => import('./pages/purchases/PurchaseList.jsx'));
 const PurchaseForm = lazy(() => import('./pages/purchases/PurchaseForm.jsx'));
 const PurchaseDetail = lazy(() => import('./pages/purchases/PurchaseDetail.jsx'));
 const CustomerList = lazy(() => import('./pages/customers/CustomerList.jsx'));
+const CreditList = lazy(() => import('./pages/credits/CreditList.jsx'));
 const CustomerDetail = lazy(() => import('./pages/customers/CustomerDetail.jsx'));
 const SupplierList = lazy(() => import('./pages/suppliers/SupplierList.jsx'));
 const SupplierDetail = lazy(() => import('./pages/suppliers/SupplierDetail.jsx'));
@@ -84,6 +85,7 @@ function AppRoutes() {
           <Route path="purchases/:id" element={<PurchaseDetail />} />
 
           {/* Customers */}
+          <Route path="credits" element={<CreditList />} />
           <Route path="customers" element={<CustomerList />} />
           <Route path="customers/:id" element={<CustomerDetail />} />
 

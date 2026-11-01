@@ -354,8 +354,22 @@ export async function getRowCount(sheetName) {
  */
 export async function generateId(prefix, sheetName, idColumn) {
   const rows = await readSheet(sheetName);
-  const count = rows.length + 1;
-  return `${prefix}-${String(count).padStart(6, '0')}`;
+  let maxId = 0;
+  const colName = idColumn || (SHEET_HEADERS[sheetName] ? SHEET_HEADERS[sheetName][0] : null);
+
+  for (const row of rows) {
+    const val = colName ? row[colName] : Object.values(row)[0];
+    if (typeof val === 'string' && val.startsWith(`${prefix}-`)) {
+      const numPart = val.replace(`${prefix}-`, '');
+      const num = parseInt(numPart, 10);
+      if (!isNaN(num) && num > maxId) {
+        maxId = num;
+      }
+    }
+  }
+
+  const nextNum = Math.max(maxId + 1, rows.length + 1);
+  return `${prefix}-${String(nextNum).padStart(6, '0')}`;
 }
 
 /**

@@ -41,13 +41,14 @@ export default asyncHandler(async (req, res) => {
     if (status === 'active') filtered = filtered.filter((p) => p.is_active !== 'false');
     if (status === 'inactive') filtered = filtered.filter((p) => p.is_active === 'false');
     if (low_stock === 'true') {
-      filtered = filtered.filter((p) =>
-        Number(p.stock_quantity) <= Number(p.min_stock_level) &&
-        Number(p.stock_quantity) > 0
-      );
+      filtered = filtered.filter((p) => {
+        const qty = Number(p.stock_quantity) || 0;
+        const min = Number(p.min_stock_level) || 0;
+        return qty <= min || qty === 0;
+      });
     }
     if (out_of_stock === 'true') {
-      filtered = filtered.filter((p) => Number(p.stock_quantity) === 0);
+      filtered = filtered.filter((p) => (Number(p.stock_quantity) || 0) === 0);
     }
 
     return ok(res, { products: filtered, total: filtered.length });

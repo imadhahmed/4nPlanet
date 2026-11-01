@@ -230,6 +230,8 @@ const SaleItemSchema = z.object({
 
 export const CreateSaleSchema = z.object({
   customer_id: z.string().optional().default('WALK_IN'),
+  customer_name: z.string().optional().default(''),
+  customer_phone: z.string().optional().default(''),
   sale_date: z.string().min(1),
   items: z.array(SaleItemSchema).min(1, 'Cart cannot be empty'),
   discount_amount: z.number().min(0).default(0),
@@ -252,7 +254,7 @@ export const CreatePaymentSchema = z.object({
   related_id: z.string().min(1),
   party_id: z.string().min(1),
   amount: z.number().positive('Amount must be positive'),
-  payment_method: z.enum(['cash', 'card', 'bank_transfer', 'mobile_payment']),
+  payment_method: z.enum(['cash', 'card', 'bank_transfer', 'mobile_payment', 'credit']),
   reference_number: z.string().optional().default(''),
   payment_date: z.string().min(1),
   notes: z.string().optional().default(''),

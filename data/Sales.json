@@ -14,9 +14,9 @@
     "amount_paid": 13000,
     "outstanding_balance": 0,
     "payment_status": "paid",
-    "sale_status": "partially_returned",
+    "sale_status": "completed",
     "notes": "Test sale",
-    "created_at": "2026-10-28T17:07:25.821Z",
-    "updated_at": "2026-10-28T17:07:25.868Z"
+    "created_at": "2026-11-01T10:36:03.836Z",
+    "updated_at": "2026-11-01T10:36:03.836Z"
   }
 ]

@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, ShoppingCart, Trash2, Plus, Minus, X, User, Printer,
-  CreditCard, Banknote, Smartphone, CheckCircle, ArrowRight,
-  Tag, RotateCcw, Maximize2, Edit3, ShoppingBag, Check, Layers,
+  CreditCard, Banknote, CheckCircle, ArrowRight,
+  Maximize2, Edit3, ShoppingBag, Check, Layers,
   ChevronLeft
 } from 'lucide-react';
 import {
@@ -78,11 +78,11 @@ export default function POS() {
   useEffect(() => {
     productsApi.list({ status: 'active' }).then((res) => {
       setProductList(res.data.data.products || []);
-    }).catch(() => {});
+    }).catch(() => { });
 
     categoriesApi.list().then((res) => {
       setCategoriesList(res.data.data.categories || []);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   // Customer search with debounce
@@ -94,7 +94,7 @@ export default function POS() {
     const timer = setTimeout(() => {
       customersApi.list({ q: customerSearch }).then((res) => {
         setCustomerResults(res.data.data.customers?.slice(0, 5) || []);
-      }).catch(() => {});
+      }).catch(() => { });
     }, 300);
     return () => clearTimeout(timer);
   }, [customerSearch]);
@@ -161,9 +161,9 @@ export default function POS() {
   const filteredProducts = productList.filter((p) => {
     const matchesSearch = productSearch
       ? p.name?.toLowerCase().includes(productSearch.toLowerCase()) ||
-        p.model?.toLowerCase().includes(productSearch.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(productSearch.toLowerCase()) ||
-        p.barcode?.toLowerCase().includes(productSearch.toLowerCase())
+      p.model?.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.barcode?.toLowerCase().includes(productSearch.toLowerCase())
       : true;
 
     const matchesCategory = selectedCategory === 'ALL'
@@ -231,13 +231,13 @@ export default function POS() {
         prev.map((item, i) =>
           i === editingManualIndex
             ? {
-                ...item,
-                name,
-                model: manualNote.trim() || 'Manual Product',
-                unit_price: price,
-                quantity: qty,
-                discount: disc,
-              }
+              ...item,
+              name,
+              model: manualNote.trim() || 'Manual Product',
+              unit_price: price,
+              quantity: qty,
+              discount: disc,
+            }
             : item
         )
       );
@@ -365,11 +365,11 @@ export default function POS() {
           prev.map((it, i) =>
             i === existingIdx
               ? {
-                  ...it,
-                  quantity: totalNewQty,
-                  unit_price: unitPrice,
-                  discount: discount > 0 ? discount : it.discount,
-                }
+                ...it,
+                quantity: totalNewQty,
+                unit_price: unitPrice,
+                discount: discount > 0 ? discount : it.discount,
+              }
               : it
           )
         );
@@ -622,7 +622,7 @@ export default function POS() {
   const modalLineTotal = Math.max(
     0,
     (Number(modalUnitPrice || modalProduct?.retail_price) || 0) * (parseInt(modalQty, 10) || 0) -
-      (Number(modalDiscount) || 0)
+    (Number(modalDiscount) || 0)
   );
 
   return (
@@ -1724,11 +1724,10 @@ export default function POS() {
                         fontSize: 12,
                         fontWeight: 700,
                         borderRadius: 16,
-                        border: `1.5px solid ${
-                          Number(modalQty) === Number(modalProduct.stock_quantity)
-                            ? 'var(--primary)'
-                            : 'var(--border-color)'
-                        }`,
+                        border: `1.5px solid ${Number(modalQty) === Number(modalProduct.stock_quantity)
+                          ? 'var(--primary)'
+                          : 'var(--border-color)'
+                          }`,
                         background:
                           Number(modalQty) === Number(modalProduct.stock_quantity)
                             ? 'var(--primary-light)'

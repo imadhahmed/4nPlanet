@@ -12,6 +12,7 @@ const ROUTE_MAP = {
   '/dashboard': { section: 'Overview', title: 'Dashboard' },
   '/pos': { section: 'Sales', title: 'Point of Sale' },
   '/sales': { section: 'Sales', title: 'Sales History' },
+  '/credits': { section: 'Sales', title: 'Credit & Receivables' },
   '/products': { section: 'Inventory', title: 'Products' },
   '/products/new': { section: 'Inventory', title: 'Add Product' },
   '/categories': { section: 'Inventory', title: 'Categories' },

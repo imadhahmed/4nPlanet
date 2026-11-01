@@ -520,7 +520,7 @@ export default function Dashboard() {
                         {p.name}
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
-                        {p.brand_name || 'Generic'} · min: {p.min_stock_level}
+                        {p.brand_name || 'Generic'} · min: {p.min_stock_level || 0}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
