@@ -5,7 +5,7 @@ import {
   Search, ShoppingCart, Trash2, Plus, Minus, X, User, Printer,
   CreditCard, Banknote, CheckCircle, ArrowRight,
   Maximize2, Edit3, ShoppingBag, Check, Layers,
-  ChevronLeft
+  ChevronLeft, Clock, UserPlus, Phone
 } from 'lucide-react';
 import {
   products as productsApi,
@@ -20,7 +20,7 @@ const PAYMENT_METHODS = [
   { id: 'cash', label: 'Cash', icon: Banknote },
   { id: 'card', label: 'Card', icon: CreditCard },
   { id: 'bank_transfer', label: 'Bank Transfer', icon: CreditCard },
-  { id: 'mobile_payment', label: 'Mobile Pay', icon: Smartphone },
+  { id: 'credit', label: 'Credit', icon: Clock },
 ];
 
 function generateIdempotencyKey() {
@@ -36,6 +36,9 @@ export default function POS() {
   const [customer, setCustomer] = useState(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
+  const [showQuickCustomerModal, setShowQuickCustomerModal] = useState(false);
+  const [quickCustomerName, setQuickCustomerName] = useState('');
+  const [quickCustomerPhone, setQuickCustomerPhone] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountPaid, setAmountPaid] = useState('');
@@ -442,8 +445,15 @@ export default function POS() {
 
     setLoading(true);
     try {
+      if (paymentMethod === 'credit' && (!customer || customer.customer_id === 'WALK_IN')) {
+        toast.error('Please assign a customer with name/phone before making a Credit sale');
+        return;
+      }
+
       const saleData = {
         customer_id: customer?.customer_id || 'WALK_IN',
+        customer_name: customer?.name || quickCustomerName || 'Walk-in Customer',
+        customer_phone: customer?.phone || quickCustomerPhone || '',
         sale_date: new Date().toISOString(),
         items: cartItems.map((i) => ({
           product_id: i.product_id,
@@ -488,6 +498,8 @@ export default function POS() {
     try {
       const saleData = {
         customer_id: customer?.customer_id || 'WALK_IN',
+        customer_name: customer?.name || quickCustomerName || 'Walk-in Customer',
+        customer_phone: customer?.phone || quickCustomerPhone || '',
         sale_date: new Date().toISOString(),
         items: cartItems.map((i) => ({
           product_id: i.product_id,
@@ -1038,63 +1050,115 @@ export default function POS() {
           </div>
         </div>
 
-        {/* Compact Customer Selector Bar */}
+        {/* Customer Header Bar (Prominently displays customer details and credit status) */}
         <div style={{
-          padding: '8px 14px',
+          padding: '10px 14px',
           borderBottom: '1px solid var(--border-color)',
-          background: 'var(--neutral-surface)',
+          background: customer ? '#F0F9FF' : 'var(--neutral-surface)',
+          transition: 'all 0.2s ease',
         }}>
           {customer ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="user-avatar" style={{ width: 26, height: 26, fontSize: 11 }}>
-                {initials(customer.name)}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                  <div className="user-avatar" style={{ width: 32, height: 32, fontSize: 12, background: 'var(--primary)', color: '#FFF' }}>
+                    {initials(customer.name)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, fontSize: 13.5, color: 'var(--navy-dark)' }}>{customer.name}</span>
+                      {Number(customer.outstanding_balance) > 0 ? (
+                        <span style={{
+                          background: '#FEE2E2', color: 'var(--danger)', fontSize: 10.5,
+                          fontWeight: 700, padding: '2px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3
+                        }}>
+                          <Clock size={11} /> Due: {formatCurrency(customer.outstanding_balance)}
+                        </span>
+                      ) : (
+                        <span style={{
+                          background: '#DCFCE7', color: '#166534', fontSize: 10,
+                          fontWeight: 700, padding: '2px 6px', borderRadius: 4
+                        }}>
+                          Active Customer
+                        </span>
+                      )}
+                    </div>
+                    {customer.phone && (
+                      <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                        <Phone size={11} color="var(--primary)" /> {customer.phone}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setCustomer(null)}
+                  style={{ fontSize: 11.5, padding: '3px 8px', color: 'var(--text-muted)' }}
+                  title="Remove customer"
+                >
+                  <X size={14} /> Remove
+                </button>
               </div>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--navy-dark)' }}>{customer.name}</span>
-                {customer.phone && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>({customer.phone})</span>}
-              </div>
-              <button
-                className="btn btn-ghost btn-icon btn-sm"
-                onClick={() => setCustomer(null)}
-                style={{ padding: 2 }}
-                title="Remove customer"
-              >
-                <X size={13} />
-              </button>
             </div>
           ) : (
-            <div style={{ position: 'relative' }}>
-              <input
-                type="search"
-                className="form-input"
-                style={{ paddingLeft: 30, paddingRight: 8, height: 32, fontSize: 11.5 }}
-                placeholder="Walk-in Customer (search registered name/phone)..."
-                value={customerSearch}
-                onChange={(e) => setCustomerSearch(e.target.value)}
-              />
-              <User size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              {customerResults.length > 0 && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-                  background: '#FFFFFF', border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-md)',
-                  zIndex: 60, overflow: 'hidden',
-                }}>
-                  {customerResults.map((c) => (
-                    <div
-                      key={c.customer_id}
-                      style={{
-                        padding: '8px 12px', cursor: 'pointer',
-                        borderBottom: '1px solid var(--border-color)', fontSize: 12,
-                      }}
-                      onMouseDown={() => { setCustomer(c); setCustomerSearch(''); setCustomerResults([]); }}
-                    >
-                      <div style={{ fontWeight: 600, color: 'var(--navy-dark)' }}>{c.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.phone}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  type="search"
+                  className="form-input"
+                  style={{ paddingLeft: 30, paddingRight: 8, height: 34, fontSize: 12 }}
+                  placeholder="Walk-in Customer (search name / phone)..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                />
+                <User size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                {customerResults.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                    background: '#FFFFFF', border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)', boxShadow: '0 8px 18px rgba(0,0,0,0.1)',
+                    zIndex: 60, overflow: 'hidden',
+                  }}>
+                    {customerResults.map((c) => (
+                      <div
+                        key={c.customer_id}
+                        style={{
+                          padding: '8px 12px', cursor: 'pointer',
+                          borderBottom: '1px solid var(--border-color)', fontSize: 12,
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        }}
+                        onMouseDown={() => { setCustomer(c); setCustomerSearch(''); setCustomerResults([]); }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 700, color: 'var(--navy-dark)' }}>{c.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.phone || 'No phone'}</div>
+                        </div>
+                        {Number(c.outstanding_balance) > 0 && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', background: '#FEE2E2', padding: '2px 6px', borderRadius: 4 }}>
+                            Due: {formatCurrency(c.outstanding_balance)}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Customer Add Button */}
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setQuickCustomerName(customerSearch || '');
+                  setQuickCustomerPhone('');
+                  setShowQuickCustomerModal(true);
+                }}
+                style={{ height: 34, padding: '0 10px', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}
+                title="Add new customer with name and mobile number"
+              >
+                <UserPlus size={14} /> + New
+              </button>
             </div>
           )}
         </div>
@@ -1423,7 +1487,12 @@ export default function POS() {
                   {PAYMENT_METHODS.map((pm) => (
                     <button
                       key={pm.id}
-                      onClick={() => setPaymentMethod(pm.id)}
+                      onClick={() => {
+                        setPaymentMethod(pm.id);
+                        if (pm.id === 'credit') {
+                          setAmountPaid(0);
+                        }
+                      }}
                       style={{
                         padding: '9px 10px',
                         borderRadius: 'var(--radius-md)',
@@ -1548,6 +1617,98 @@ export default function POS() {
       {/* ═════════════════════════════════════════════
           QUANTITY & AMOUNT POPUP MODAL
       ═════════════════════════════════════════════ */}
+      {/* ── Quick Customer Modal ── */}
+      {showQuickCustomerModal && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 120 }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowQuickCustomerModal(false);
+          }}
+        >
+          <div
+            className="modal"
+            style={{
+              maxWidth: 420,
+              padding: 24,
+              boxShadow: 'var(--shadow-xl)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <UserPlus size={18} color="var(--primary)" />
+                Quick Customer Details
+              </h3>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => setShowQuickCustomerModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const name = quickCustomerName.trim();
+                const phone = quickCustomerPhone.trim();
+                if (!name) {
+                  toast.error('Customer name is required');
+                  return;
+                }
+                const newCust = {
+                  customer_id: 'NEW',
+                  name,
+                  phone,
+                  outstanding_balance: 0,
+                };
+                setCustomer(newCust);
+                setShowQuickCustomerModal(false);
+                toast.success(`Linked customer "${name}" to this sale`);
+              }}
+            >
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: 12 }}>Customer Name *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Kamal Perera"
+                  value={quickCustomerName}
+                  onChange={(e) => setQuickCustomerName(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 18 }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: 12 }}>Mobile Number</label>
+                <input
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. 0771234567"
+                  value={quickCustomerPhone}
+                  onChange={(e) => setQuickCustomerPhone(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowQuickCustomerModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Set Customer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {quantityModalOpen && modalProduct && (
         <div
           className="modal-overlay"

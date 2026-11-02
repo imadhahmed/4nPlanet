@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import LoadingScreen from './components/ui/LoadingScreen.jsx';
+import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 
 // Lazy-loaded pages
 const Login = lazy(() => import('./pages/auth/Login.jsx'));
@@ -56,8 +57,9 @@ function AppRoutes() {
   if (!initialized) return <LoadingScreen />;
 
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Routes>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 
         <Route path="/" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
@@ -113,7 +115,8 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
-  );
+  </ErrorBoundary>
+);
 }
 
 export default function App() {

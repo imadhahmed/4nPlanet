@@ -98,10 +98,10 @@ describe('Returns & Exchanges API Integration', () => {
     // Reset product stock
     const products = readLocalSheet('Products');
     const anker = products.find((p) => p.product_id === 'PROD-000003');
-    if (anker) {
-      anker.stock_quantity = 25;
-      writeLocalSheet('Products', products);
-    }
+    if (anker) anker.stock_quantity = 25;
+    const screen = products.find((p) => p.product_id === 'PROD-000004');
+    if (screen) screen.stock_quantity = 5;
+    writeLocalSheet('Products', products);
   });
 
   it('looks up an invoice and validates returnable quantities', async () => {
