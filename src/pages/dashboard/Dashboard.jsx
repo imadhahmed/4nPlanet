@@ -63,15 +63,19 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   const [chartRange, setChartRange] = useState('7d'); // '7d' | '30d'
 
   const load = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
+    setError(null);
     try {
       const res = await dashboard.get();
       setData(res.data.data);
     } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to load dashboard data';
+      setError(msg);
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -108,6 +112,30 @@ export default function Dashboard() {
         <div className="stat-grid">
           {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i + 4} />)}
         </div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center', maxWidth: 480, margin: '60px auto' }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%', background: 'rgba(217, 75, 75, 0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+          color: 'var(--danger)',
+        }}>
+          <AlertTriangle size={28} />
+        </div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--navy-dark)', marginBottom: 8 }}>
+          Unable to Load Dashboard
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20 }}>
+          {error}
+        </p>
+        <button className="btn btn-primary" onClick={() => load()}>
+          <RefreshCw size={15} />
+          <span>Try Again</span>
+        </button>
       </div>
     );
   }

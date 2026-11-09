@@ -22,7 +22,21 @@ export default asyncHandler(async (req, res) => {
   requireAuth(req);
 
   // Load all needed sheets in parallel
-  const [sales, saleItems, purchases, purchaseItems, expenses, products, serials, customers, suppliers, payments, repairs, returns] = await Promise.all([
+  const [
+    sales,
+    saleItems,
+    purchases,
+    purchaseItems,
+    expenses,
+    products,
+    serials,
+    customers,
+    suppliers,
+    payments,
+    repairs,
+    returns,
+    warranties,
+  ] = await Promise.all([
     readSheet('Sales'),
     readSheet('Sale_Items'),
     readSheet('Purchases'),
@@ -35,9 +49,10 @@ export default asyncHandler(async (req, res) => {
     readSheet('Payments'),
     readSheet('Repair_Jobs'),
     readSheet('Returns').catch(() => []),
+    readSheet('Warranties').catch(() => []),
   ]);
 
-
+  const productMap = Object.fromEntries(products.map((p) => [p.product_id, p]));
   const today = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 
   // ─────────────────────────────────────────────
@@ -164,7 +179,6 @@ export default asyncHandler(async (req, res) => {
   // ─────────────────────────────────────────────
   // SALES BY CATEGORY
   // ─────────────────────────────────────────────
-  const productMap = Object.fromEntries(products.map((p) => [p.product_id, p]));
   const categoryRevenue = {};
 
   saleItems.forEach((item) => {
@@ -234,11 +248,11 @@ export default asyncHandler(async (req, res) => {
   // ─────────────────────────────────────────────
   const recentSales = sales
     .filter((s) => s.sale_status === 'completed')
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
     .slice(0, 5);
 
   const recentPurchases = purchases
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
     .slice(0, 5);
 
   // ─────────────────────────────────────────────
@@ -259,11 +273,10 @@ export default asyncHandler(async (req, res) => {
   // ─────────────────────────────────────────────
   // WARRANTY EXPIRY REMINDERS (next 30 days)
   // ─────────────────────────────────────────────
-  const warranties = await readSheet('Warranties');
   const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { timeZone: TZ });
-  const expiringWarranties = warranties
+  const expiringWarranties = (warranties || [])
     .filter((w) => w.status === 'active' && w.warranty_expiry >= today && w.warranty_expiry <= in30Days)
-    .sort((a, b) => a.warranty_expiry.localeCompare(b.warranty_expiry))
+    .sort((a, b) => (a.warranty_expiry || '').localeCompare(b.warranty_expiry || ''))
     .slice(0, 10);
 
   return ok(res, {

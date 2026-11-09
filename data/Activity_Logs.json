@@ -339,5 +339,49 @@
     "details": "Processed exchange_same return RET-000001 for invoice INV-TEST-001",
     "ip_address": "",
     "created_at": "2026-11-02T04:35:46.984Z"
+  },
+  {
+    "log_id": "LOG-000032",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed cash_refund return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-11-09T02:56:08.794Z"
+  },
+  {
+    "log_id": "LOG-000033",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed cash_refund return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-11-09T02:56:08.812Z"
+  },
+  {
+    "log_id": "LOG-000034",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed exchange_diff return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-11-09T02:56:08.832Z"
+  },
+  {
+    "log_id": "LOG-000035",
+    "user_id": "USR-000002",
+    "user_name": "Cashier Staff",
+    "action": "create",
+    "entity_type": "return",
+    "entity_id": "RET-000001",
+    "details": "Processed exchange_same return RET-000001 for invoice INV-TEST-001",
+    "ip_address": "",
+    "created_at": "2026-11-09T02:56:08.850Z"
   }
 ]
